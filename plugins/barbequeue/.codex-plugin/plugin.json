@@ -1,6 +1,6 @@
 {
   "name": "barbequeue",
-  "version": "0.1.0+codex.20260613144352",
+  "version": "0.1.0+codex.20260613155119",
   "description": "Run Barbequeue multiplayer grill-with-docs tracer sessions from Codex.",
   "author": {
     "name": "Barbequeue"

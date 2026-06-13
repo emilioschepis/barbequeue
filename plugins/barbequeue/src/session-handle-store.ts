@@ -10,8 +10,15 @@ const SessionHandleSchema = z.object({
   hostDriverToken: z.string().min(1),
   inviteCode: z.string().min(1),
   inviteLink: z.string().min(1),
+  hostLink: z.string().min(1).optional(),
   cursor: z.number().int().nonnegative()
-});
+}).transform((handle) => ({
+  ...handle,
+  hostLink: handle.hostLink ?? new URL(
+    `/host/${encodeURIComponent(handle.sessionId)}?token=${encodeURIComponent(handle.hostDriverToken)}`,
+    handle.baseUrl
+  ).toString()
+}));
 
 export function defaultHandlePath(cwd = process.cwd()): string {
   return resolve(cwd, ".barbequeue", "session-handle.json");

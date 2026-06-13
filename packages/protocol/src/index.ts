@@ -57,7 +57,8 @@ const AnswerCandidatePublishedSchema = z.object({
 
 const ConsensusStateChangedSchema = z.object({
   type: z.literal("consensus_state.changed"),
-  participantId: NonEmptyString,
+  participantId: NonEmptyString.optional(),
+  hostDriverId: NonEmptyString.optional(),
   state: ConsensusStateSchema,
   reason: z.string().optional()
 });
@@ -77,6 +78,11 @@ const OutcomeAcceptedSchema = z.object({
   dismissedParticipantIds: z.array(NonEmptyString).default([])
 });
 
+const SessionEndedSchema = z.object({
+  type: z.literal("session.ended"),
+  reason: z.string().optional()
+});
+
 const SharedContextPublishedSchema = z.object({
   type: z.literal("shared_context.published"),
   contextId: NonEmptyString,
@@ -94,6 +100,7 @@ const BaseSessionEventPayloadSchema = z.discriminatedUnion("type", [
   ConsensusStateChangedSchema,
   ObjectionDismissedSchema,
   OutcomeAcceptedSchema,
+  SessionEndedSchema,
   SharedContextPublishedSchema
 ]);
 
@@ -115,6 +122,16 @@ function validatePayloadRules(
       path: ["reason"]
     });
   }
+  if (value.type === "consensus_state.changed") {
+    const memberCount = Number(Boolean(value.participantId)) + Number(Boolean(value.hostDriverId));
+    if (memberCount !== 1) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Consensus state requires exactly one consensus member",
+        path: ["participantId"]
+      });
+    }
+  }
 }
 
 export const SessionEventPayloadSchema = BaseSessionEventPayloadSchema.superRefine(validatePayloadRules);
@@ -134,13 +151,22 @@ const BasePluginEventPayloadSchema = z.union([
   SessionCreatedSchema,
   QuestionPublishedSchema,
   AnswerCandidatePublishedSchema,
+  ConsensusStateChangedSchema,
   ObjectionDismissedSchema,
   OutcomeAcceptedSchema,
+  SessionEndedSchema,
   SharedContextPublishedSchema
 ]);
 
 export const PluginEventPayloadSchema = BasePluginEventPayloadSchema.superRefine((value, ctx) => {
   validatePayloadRules(value, ctx);
+  if (value.type === "consensus_state.changed" && !value.hostDriverId) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Plugin-owned consensus state requires a host driver id",
+      path: ["hostDriverId"]
+    });
+  }
 });
 
 const BaseRoomEventPayloadSchema = z.union([
@@ -151,6 +177,13 @@ const BaseRoomEventPayloadSchema = z.union([
 
 export const RoomEventPayloadSchema = BaseRoomEventPayloadSchema.superRefine((value, ctx) => {
   validatePayloadRules(value, ctx);
+  if (value.type === "consensus_state.changed" && !value.participantId) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Room-owned consensus state requires a participant id",
+      path: ["participantId"]
+    });
+  }
 });
 
 export type ContributionKind = z.infer<typeof ContributionKindSchema>;
@@ -163,6 +196,7 @@ export type AnswerCandidatePublishedPayload = z.infer<typeof AnswerCandidatePubl
 export type ConsensusStateChangedPayload = z.infer<typeof ConsensusStateChangedSchema>;
 export type ObjectionDismissedPayload = z.infer<typeof ObjectionDismissedSchema>;
 export type OutcomeAcceptedPayload = z.infer<typeof OutcomeAcceptedSchema>;
+export type SessionEndedPayload = z.infer<typeof SessionEndedSchema>;
 export type SharedContextPublishedPayload = z.infer<typeof SharedContextPublishedSchema>;
 export type SessionEventPayload =
   | SessionCreatedPayload
@@ -173,13 +207,16 @@ export type SessionEventPayload =
   | ConsensusStateChangedPayload
   | ObjectionDismissedPayload
   | OutcomeAcceptedPayload
+  | SessionEndedPayload
   | SharedContextPublishedPayload;
 export type PluginEventPayload =
   | SessionCreatedPayload
   | QuestionPublishedPayload
   | AnswerCandidatePublishedPayload
+  | ConsensusStateChangedPayload
   | ObjectionDismissedPayload
   | OutcomeAcceptedPayload
+  | SessionEndedPayload
   | SharedContextPublishedPayload;
 export type RoomEventPayload =
   | ParticipantJoinedPayload
@@ -216,7 +253,10 @@ export interface AnswerCandidateProjection {
 }
 
 export interface ConsensusProjection {
-  participantId: string;
+  memberKind: "host" | "participant";
+  memberId: string;
+  participantId?: string;
+  hostDriverId?: string;
   state: ConsensusState;
   reason?: string;
   cursor: number;
@@ -228,6 +268,11 @@ export interface AcceptedOutcomeProjection {
   text: string;
   resolvedBy: "consensus" | "dismissed-objection";
   dismissedParticipantIds: string[];
+  cursor: number;
+}
+
+export interface SessionEndedProjection {
+  reason?: string;
   cursor: number;
 }
 
@@ -247,6 +292,13 @@ export interface SessionLogEntryProjection {
   body?: string;
 }
 
+export interface GrillingRoundProjection {
+  question: { questionId: string; text: string; recommendedAnswer?: string; cursor: number };
+  answerCandidates: AnswerCandidateProjection[];
+  currentAnswerCandidateId?: string;
+  acceptedOutcome?: AcceptedOutcomeProjection;
+}
+
 export interface SessionProjection {
   sessionId?: string;
   inviteCode?: string;
@@ -254,12 +306,14 @@ export interface SessionProjection {
   lastCursor: number;
   participants: ParticipantProjection[];
   currentQuestion?: { questionId: string; text: string; recommendedAnswer?: string; cursor: number };
+  rounds: GrillingRoundProjection[];
   contributions: ContributionProjection[];
   answerCandidates: AnswerCandidateProjection[];
   currentAnswerCandidateId?: string;
   consensusStates: ConsensusProjection[];
   dismissedObjections: Array<{ participantId: string; reason: string; cursor: number }>;
   acceptedOutcome?: AcceptedOutcomeProjection;
+  sessionEnded?: SessionEndedProjection;
   sharedContext: SharedContextProjection[];
   sessionLog: SessionLogEntryProjection[];
   canAcceptOutcome: boolean;
@@ -269,6 +323,7 @@ export function emptyProjection(): SessionProjection {
   return {
     lastCursor: 0,
     participants: [],
+    rounds: [],
     contributions: [],
     answerCandidates: [],
     consensusStates: [],
@@ -299,6 +354,11 @@ export function applySessionEvent(
     ...projection,
     lastCursor: Math.max(projection.lastCursor, event.cursor),
     participants: [...projection.participants],
+    rounds: projection.rounds.map((round) => ({
+      ...round,
+      answerCandidates: [...round.answerCandidates],
+      ...(round.acceptedOutcome ? { acceptedOutcome: { ...round.acceptedOutcome } } : {})
+    })),
     contributions: [...projection.contributions],
     answerCandidates: [...projection.answerCandidates],
     consensusStates: [...projection.consensusStates],
@@ -332,6 +392,10 @@ export function applySessionEvent(
         ...(event.payload.recommendedAnswer ? { recommendedAnswer: event.payload.recommendedAnswer } : {}),
         cursor: event.cursor
       };
+      next.rounds.push({
+        question: next.currentQuestion,
+        answerCandidates: []
+      });
       next.contributions = [];
       next.answerCandidates = [];
       delete next.currentAnswerCandidateId;
@@ -361,12 +425,15 @@ export function applySessionEvent(
       ));
       break;
     case "answer_candidate.published":
-      next.answerCandidates.push({
+      const answerCandidate = {
         answerCandidateId: event.payload.answerCandidateId,
         text: event.payload.text,
         cursor: event.cursor
-      });
+      };
+      next.answerCandidates.push(answerCandidate);
       next.currentAnswerCandidateId = event.payload.answerCandidateId;
+      currentRound(next).answerCandidates.push(answerCandidate);
+      currentRound(next).currentAnswerCandidateId = event.payload.answerCandidateId;
       next.consensusStates = [];
       next.dismissedObjections = [];
       delete next.acceptedOutcome;
@@ -374,18 +441,22 @@ export function applySessionEvent(
       break;
     case "consensus_state.changed": {
       const payload = event.payload;
+      const member = consensusMember(payload);
       next.consensusStates = next.consensusStates.filter(
-        (state) => state.participantId !== payload.participantId
+        (state) => state.memberKind !== member.memberKind || state.memberId !== member.memberId
       );
       next.consensusStates.push({
-        participantId: payload.participantId,
+        memberKind: member.memberKind,
+        memberId: member.memberId,
+        ...(payload.participantId ? { participantId: payload.participantId } : {}),
+        ...(payload.hostDriverId ? { hostDriverId: payload.hostDriverId } : {}),
         state: payload.state,
         ...(payload.reason ? { reason: payload.reason } : {}),
         cursor: event.cursor
       });
       next.sessionLog.push(logEntry(
         event,
-        `${participantLabel(next, payload.participantId)} marked consensus as ${payload.state}.`,
+        `${consensusMemberLabel(next, member)} marked consensus as ${payload.state}.`,
         payload.reason
       ));
       break;
@@ -411,7 +482,15 @@ export function applySessionEvent(
         dismissedParticipantIds: event.payload.dismissedParticipantIds,
         cursor: event.cursor
       };
+      currentRound(next).acceptedOutcome = next.acceptedOutcome;
       next.sessionLog.push(logEntry(event, "Host accepted the current answer.", event.payload.text));
+      break;
+    case "session.ended":
+      next.sessionEnded = {
+        ...(event.payload.reason?.trim() ? { reason: event.payload.reason } : {}),
+        cursor: event.cursor
+      };
+      next.sessionLog.push(logEntry(event, "Host ended the session.", event.payload.reason));
       break;
     case "shared_context.published":
       next.sharedContext.push({
@@ -427,6 +506,14 @@ export function applySessionEvent(
 
   next.canAcceptOutcome = calculateCanAcceptOutcome(next);
   return next;
+}
+
+function currentRound(projection: SessionProjection): GrillingRoundProjection {
+  const round = projection.rounds.at(-1);
+  if (!round) {
+    throw new Error("Current round is missing");
+  }
+  return round;
 }
 
 function logEntry(
@@ -448,6 +535,26 @@ function participantLabel(projection: SessionProjection, participantId: string):
     ?.displayName ?? participantId;
 }
 
+function consensusMember(payload: ConsensusStateChangedPayload): { memberKind: "host" | "participant"; memberId: string } {
+  if (payload.hostDriverId) {
+    return { memberKind: "host", memberId: payload.hostDriverId };
+  }
+  if (payload.participantId) {
+    return { memberKind: "participant", memberId: payload.participantId };
+  }
+  throw new Error("Consensus state is missing a consensus member");
+}
+
+function consensusMemberLabel(
+  projection: SessionProjection,
+  member: { memberKind: "host" | "participant"; memberId: string }
+): string {
+  if (member.memberKind === "host") {
+    return "Host";
+  }
+  return participantLabel(projection, member.memberId);
+}
+
 export function projectSession(events: StoredSessionEvent[]): SessionProjection {
   return events.reduce(
     (projection, event) => applySessionEvent(projection, validateStoredEvent(event)),
@@ -456,20 +563,32 @@ export function projectSession(events: StoredSessionEvent[]): SessionProjection 
 }
 
 export function calculateCanAcceptOutcome(projection: SessionProjection): boolean {
-  if (!projection.currentAnswerCandidateId || projection.participants.length === 0) {
+  if (projection.sessionEnded || projection.acceptedOutcome) {
+    return false;
+  }
+  if (!projection.currentAnswerCandidateId || !projection.hostDriverId) {
+    return false;
+  }
+  if (projection.participants.length === 0) {
     return false;
   }
 
-  const dismissed = new Set(projection.dismissedObjections.map((item) => item.participantId));
+  const members = [
+    { memberKind: "host" as const, memberId: projection.hostDriverId },
+    ...projection.participants.map((participant) => ({
+      memberKind: "participant" as const,
+      memberId: participant.participantId
+    }))
+  ];
 
-  for (const participant of projection.participants) {
+  for (const member of members) {
     const state = projection.consensusStates.find(
-      (candidate) => candidate.participantId === participant.participantId
+      (candidate) => candidate.memberKind === member.memberKind && candidate.memberId === member.memberId
     );
     if (!state || state.state === "pending") {
       return false;
     }
-    if (state.state === "objected" && !dismissed.has(participant.participantId)) {
+    if (state.state === "objected") {
       return false;
     }
   }

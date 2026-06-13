@@ -22,6 +22,7 @@ async function main() {
     console.log(JSON.stringify({
       sessionId: handle.sessionId,
       inviteLink: handle.inviteLink,
+      hostLink: handle.hostLink,
       cursor: handle.cursor,
       handlePath
     }, null, 2));
@@ -34,6 +35,7 @@ async function main() {
     console.log(JSON.stringify({
       sessionId: result.handle.sessionId,
       inviteLink: result.handle.inviteLink,
+      hostLink: result.handle.hostLink,
       outcome: result.outcome.payload,
       cursor: result.projection.lastCursor,
       handlePath
@@ -61,6 +63,8 @@ async function main() {
       sessionId: result.handle.sessionId,
       eventsRead: result.eventsRead,
       cursor: result.handle.cursor,
+      inviteLink: result.handle.inviteLink,
+      hostLink: result.handle.hostLink,
       currentQuestion: result.projection.currentQuestion?.text ?? null
     }, null, 2));
     return;
@@ -111,18 +115,36 @@ async function main() {
     return;
   }
 
-  if (command === "dismiss-objection") {
-    const [participantId, ...reasonParts] = args;
-    if (!participantId || reasonParts.length === 0) {
-      throw new Error("Usage: dismiss-objection <participantId> <reason>");
+  if (command === "publish-answer-candidate") {
+    const text = args.join(" ").trim();
+    if (!text) {
+      throw new Error("Usage: publish-answer-candidate <text>");
     }
-    const event = await driver.dismissObjection(participantId, reasonParts.join(" "), handlePath);
+    const event = await driver.publishAnswerCandidate(text, handlePath);
+    console.log(JSON.stringify(event, null, 2));
+    return;
+  }
+
+  if (command === "host-consensus") {
+    const [stateInput, ...reasonParts] = args;
+    const state = requireConsensusState(stateInput);
+    const reason = reasonParts.join(" ");
+    if (state === "objected" && !reason.trim()) {
+      throw new Error("Usage: host-consensus objected <reason>");
+    }
+    const event = await driver.setHostConsensus(state, reason || undefined, handlePath);
     console.log(JSON.stringify(event, null, 2));
     return;
   }
 
   if (command === "accept") {
     const event = await driver.acceptOutcome(handlePath);
+    console.log(JSON.stringify(event, null, 2));
+    return;
+  }
+
+  if (command === "end-session") {
+    const event = await driver.endSession(args.join(" ") || undefined, handlePath);
     console.log(JSON.stringify(event, null, 2));
     return;
   }
@@ -147,8 +169,10 @@ Commands:
   next-question <q> [:: rec]       Publish the next question after the current one is resolved
   advance [next q] [:: rec]        Advance the host loop or publish the next question when ready
   synthesize                       Publish a fake host-gated Answer Candidate
-  dismiss-objection <id> <reason>  Record a dismissed Objection
+  publish-answer-candidate <text>  Publish a Codex-revised Answer Candidate and reset votes
+  host-consensus <state> [reason]   Set host consensus: accepted, objected, abstained, pending
   accept                           Publish an accepted outcome
+  end-session [reason]             End the Grilling Session
   show                             Print the current projection
   status                           Print host-facing session status and next action
   wait-for-contributions [ms]      Poll until contributions arrive or the timeout elapses
@@ -160,17 +184,22 @@ function formatStatus(result: Awaited<ReturnType<BarbequeueDriver["status"]>>) {
   return {
     sessionId: result.handle.sessionId,
     inviteLink: result.inviteLink,
+    hostLink: result.hostLink,
     cursor: result.handle.cursor,
     participantCount: result.participantCount,
     contributionCount: result.contributionCount,
     unresolvedObjections: result.unresolvedObjections,
     pendingParticipants: result.pendingParticipants,
+    pendingConsensusMembers: result.pendingConsensusMembers,
+    hostConsensus: result.hostConsensus ?? null,
     hasQuestion: result.hasQuestion,
     hasAnswerCandidate: result.hasAnswerCandidate,
     hasAcceptedOutcome: result.hasAcceptedOutcome,
+    hasSessionEnded: result.hasSessionEnded,
+    sessionEnded: result.projection.sessionEnded ?? null,
     currentQuestion: result.projection.currentQuestion?.text ?? null,
     recommendedAnswer: result.projection.currentQuestion?.recommendedAnswer ?? null,
-    hostSurface: "Codex thread",
+    hostSurface: result.hostLink,
     participantSurface: result.inviteLink,
     nextAction: result.nextAction
   };
@@ -189,6 +218,13 @@ function optionalNextQuestion(nextQuestion?: string, recommendedAnswer?: string)
     ...(nextQuestion?.trim() ? { nextQuestion } : {}),
     ...(recommendedAnswer?.trim() ? { recommendedAnswer } : {})
   };
+}
+
+function requireConsensusState(value: string | undefined): "accepted" | "abstained" | "objected" | "pending" {
+  if (value === "accepted" || value === "abstained" || value === "objected" || value === "pending") {
+    return value;
+  }
+  throw new Error("Usage: host-consensus <accepted|objected|abstained|pending> [reason]");
 }
 
 main().catch((error) => {

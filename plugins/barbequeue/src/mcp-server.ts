@@ -26,7 +26,7 @@ const PLUGIN_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const tools: ToolDefinition[] = [
   {
     name: "create_session",
-    description: "Create a hosted Barbequeue Grilling Session, store a local Session Handle, and return the participant invite link.",
+    description: "Create a hosted Barbequeue Grilling Session, store a local Session Handle, and return the participant invite link plus private host dashboard link.",
     inputSchema: {
       type: "object",
       properties: {
@@ -40,7 +40,7 @@ const tools: ToolDefinition[] = [
   },
   {
     name: "start_discussion",
-    description: "Create a real hosted discussion, publish the question, return the participant invite link, then stop and wait for participants.",
+    description: "Create a real hosted discussion, publish the question, return the private host dashboard link and participant invite link, then stop and wait for participants.",
     inputSchema: {
       type: "object",
       properties: {
@@ -91,7 +91,7 @@ const tools: ToolDefinition[] = [
   },
   {
     name: "advance_session",
-    description: "Advance the host-driven grill loop: synthesize when ready, accept when consensus is ready, surface objections for host judgment, and optionally publish the next question.",
+    description: "Advance the host-driven grill loop: synthesize when ready, revise when objections exist, accept when consensus is ready, and optionally publish the next question.",
     inputSchema: {
       type: "object",
       properties: {
@@ -147,21 +147,54 @@ const tools: ToolDefinition[] = [
     inputSchema: { type: "object", properties: {} }
   },
   {
-    name: "dismiss_objection",
-    description: "Dismiss a participant Objection with a recorded reason.",
+    name: "publish_answer_candidate",
+    description: "Publish a host-approved or Codex-revised Answer Candidate. This resets Consensus States in every browser.",
     inputSchema: {
       type: "object",
       properties: {
-        participantId: { type: "string" },
-        reason: { type: "string" }
+        text: {
+          type: "string",
+          description: "Full answer candidate text to publish."
+        }
       },
-      required: ["participantId", "reason"]
+      required: ["text"]
+    }
+  },
+  {
+    name: "host_consensus",
+    description: "Set the host's Consensus State for the current Answer Candidate: accepted, abstained, objected, or pending.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        state: {
+          type: "string",
+          enum: ["accepted", "abstained", "objected", "pending"]
+        },
+        reason: {
+          type: "string",
+          description: "Required when the host objects."
+        }
+      },
+      required: ["state"]
     }
   },
   {
     name: "accept_outcome",
-    description: "Publish an accepted outcome after Session Consensus or a dismissed-objection exception.",
+    description: "Publish an accepted outcome after Session Consensus. Objected candidates must be revised, not accepted.",
     inputSchema: { type: "object", properties: {} }
+  },
+  {
+    name: "end_session",
+    description: "End the Grilling Session when the skill has enough accepted information and no more questions are needed.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        reason: {
+          type: "string",
+          description: "Optional short reason or final status to show in the host and participant pages."
+        }
+      }
+    }
   },
   {
     name: "show_session",
@@ -267,6 +300,7 @@ async function runTool(name: string, args: Record<string, unknown>) {
     return {
       sessionId: handle.sessionId,
       inviteLink: handle.inviteLink,
+      hostLink: handle.hostLink,
       cursor: handle.cursor,
       handlePath
     };
@@ -280,7 +314,7 @@ async function runTool(name: string, args: Record<string, unknown>) {
         readString(args.recommendedAnswer),
         handlePath
       ),
-      "Host surface: this Codex thread. Participant surface: inviteLink. Share inviteLink with participants, then stop. Do not synthesize until wait_for_contributions reports contributionCount > 0."
+      "Host surface: hostLink is private for facilitation controls; Codex remains the synthesis driver. Participant surface: inviteLink. Share only inviteLink with participants, then stop. Wait for participant responses before accepting, revising, or moving to the next question."
     );
   }
 
@@ -290,6 +324,7 @@ async function runTool(name: string, args: Record<string, unknown>) {
     return {
       sessionId: result.handle.sessionId,
       inviteLink: result.handle.inviteLink,
+      hostLink: result.handle.hostLink,
       outcome: result.outcome.payload,
       cursor: result.projection.lastCursor,
       handlePath
@@ -343,13 +378,22 @@ async function runTool(name: string, args: Record<string, unknown>) {
   if (name === "synthesize") {
     return driver.synthesize(handlePath);
   }
-  if (name === "dismiss_objection") {
-    const participantId = requireString(args.participantId, "participantId");
-    const reason = requireString(args.reason, "reason");
-    return driver.dismissObjection(participantId, reason, handlePath);
+  if (name === "publish_answer_candidate") {
+    return driver.publishAnswerCandidate(requireString(args.text, "text"), handlePath);
+  }
+  if (name === "host_consensus") {
+    const state = requireConsensusState(args.state);
+    const reason = readString(args.reason);
+    if (state === "objected" && !reason) {
+      throw new Error("Host objection requires a reason.");
+    }
+    return driver.setHostConsensus(state, reason, handlePath);
   }
   if (name === "accept_outcome") {
     return driver.acceptOutcome(handlePath);
+  }
+  if (name === "end_session") {
+    return driver.endSession(readString(args.reason), handlePath);
   }
   if (name === "show_session") {
     return driver.show();
@@ -377,6 +421,14 @@ function readNonnegativeInteger(value: unknown): number | undefined {
   return value;
 }
 
+function requireConsensusState(value: unknown): "accepted" | "abstained" | "objected" | "pending" {
+  const state = readString(value);
+  if (state === "accepted" || state === "abstained" || state === "objected" || state === "pending") {
+    return state;
+  }
+  throw new Error("state must be accepted, abstained, objected, or pending");
+}
+
 function formatStatus(
   result: Awaited<ReturnType<BarbequeueDriver["status"]>>,
   instruction?: string
@@ -384,17 +436,22 @@ function formatStatus(
   return {
     sessionId: result.handle.sessionId,
     inviteLink: result.inviteLink,
+    hostLink: result.hostLink,
     cursor: result.handle.cursor,
     participantCount: result.participantCount,
     contributionCount: result.contributionCount,
     unresolvedObjections: result.unresolvedObjections,
     pendingParticipants: result.pendingParticipants,
+    pendingConsensusMembers: result.pendingConsensusMembers,
+    hostConsensus: result.hostConsensus ?? null,
     hasQuestion: result.hasQuestion,
     hasAnswerCandidate: result.hasAnswerCandidate,
     hasAcceptedOutcome: result.hasAcceptedOutcome,
+    hasSessionEnded: result.hasSessionEnded,
+    sessionEnded: result.projection.sessionEnded ?? null,
     currentQuestion: result.projection.currentQuestion?.text ?? null,
     recommendedAnswer: result.projection.currentQuestion?.recommendedAnswer ?? null,
-    hostSurface: "Codex thread",
+    hostSurface: result.hostLink,
     participantSurface: result.inviteLink,
     nextAction: result.nextAction,
     ...(instruction ? { instruction } : {})
@@ -406,9 +463,11 @@ function formatAdvanceResult(result: Awaited<ReturnType<BarbequeueDriver["advanc
     action: result.action,
     message: result.message,
     ...formatStatus(result.status),
-    hostGuidance: result.action === "host_decision_required"
-      ? "The host stays in Codex. Use dismiss_objection with a reason, or publish a revised answer/question instead of asking participants to resolve host-only decisions."
-      : "The host stays in Codex. Participants continue in the same room URL."
+    hostGuidance: result.action === "revision_required"
+      ? "Use the objections as revision input, then call publish_answer_candidate with the revised answer. Do not dismiss objections."
+      : result.action === "waiting_for_next_question"
+        ? "Publish the next question, or call end_session if the skill has enough accepted information."
+        : "Use the private host dashboard for facilitation controls. Participants continue in the same room URL."
   };
 }
 

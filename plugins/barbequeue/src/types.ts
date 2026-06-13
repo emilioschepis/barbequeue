@@ -12,6 +12,7 @@ export interface SessionHandle {
   hostDriverToken: string;
   inviteCode: string;
   inviteLink: string;
+  hostLink: string;
   cursor: number;
 }
 

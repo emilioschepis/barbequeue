@@ -9,12 +9,23 @@ export interface SessionStatus {
   projection: SessionProjection;
   participantCount: number;
   contributionCount: number;
-  unresolvedObjections: Array<{ participantId: string; displayName?: string; reason?: string }>;
+  unresolvedObjections: Array<{
+    memberKind: "host" | "participant";
+    memberId: string;
+    participantId?: string;
+    hostDriverId?: string;
+    displayName?: string;
+    reason?: string;
+  }>;
   pendingParticipants: Array<{ participantId: string; displayName: string }>;
+  pendingConsensusMembers: Array<{ memberKind: "host" | "participant"; memberId: string; displayName: string }>;
+  hostConsensus?: { state: "pending" | "accepted" | "abstained" | "objected"; reason?: string };
   hasQuestion: boolean;
   hasAnswerCandidate: boolean;
   hasAcceptedOutcome: boolean;
+  hasSessionEnded: boolean;
   inviteLink: string;
+  hostLink: string;
   nextAction: string;
 }
 
@@ -24,10 +35,11 @@ export interface AdvanceSessionResult {
     | "waiting_for_contributions"
     | "synthesized"
     | "waiting_for_consensus"
-    | "host_decision_required"
+    | "revision_required"
     | "accepted_outcome"
     | "published_next_question"
-    | "waiting_for_next_question";
+    | "waiting_for_next_question"
+    | "session_ended";
   status: SessionStatus;
   message: string;
 }
@@ -85,6 +97,9 @@ export class BarbequeueDriver {
   ) {
     const handle = this.requireHandle();
     const projection = await this.client.getProjection(handle.sessionId);
+    if (projection.sessionEnded) {
+      throw new Error("The grilling session has ended.");
+    }
     if (projection.currentQuestion && !projection.acceptedOutcome) {
       throw new Error("Resolve the current question before publishing the next grill question.");
     }
@@ -95,7 +110,16 @@ export class BarbequeueDriver {
       text,
       ...(recommendedAnswer?.trim() ? { recommendedAnswer } : {})
     });
-    await this.updateCursor(event.cursor, path);
+    let cursor = event.cursor;
+    if (recommendedAnswer?.trim()) {
+      const candidateEvent = await this.appendPluginEvent({
+        type: "answer_candidate.published",
+        answerCandidateId: crypto.randomUUID(),
+        text: recommendedAnswer
+      });
+      cursor = candidateEvent.cursor;
+    }
+    await this.updateCursor(cursor, path);
     return event;
   }
 
@@ -117,6 +141,13 @@ export class BarbequeueDriver {
       );
     }
     const text = synthesizeFakeAnswerCandidate(projection);
+    return this.publishAnswerCandidate(text, path);
+  }
+
+  async publishAnswerCandidate(text: string, path?: string) {
+    if (!text.trim()) {
+      throw new Error("Answer candidate text is required.");
+    }
     const event = await this.appendPluginEvent({
       type: "answer_candidate.published",
       answerCandidateId: crypto.randomUUID(),
@@ -126,11 +157,17 @@ export class BarbequeueDriver {
     return event;
   }
 
-  async dismissObjection(participantId: string, reason: string, path?: string) {
+  async setHostConsensus(
+    state: "accepted" | "abstained" | "objected" | "pending",
+    reason?: string,
+    path?: string
+  ) {
+    const handle = this.requireHandle();
     const event = await this.appendPluginEvent({
-      type: "objection.dismissed",
-      participantId,
-      reason
+      type: "consensus_state.changed",
+      hostDriverId: handle.hostDriverId,
+      state,
+      ...(reason?.trim() ? { reason } : {})
     });
     await this.updateCursor(event.cursor, path);
     return event;
@@ -145,14 +182,22 @@ export class BarbequeueDriver {
     if (!currentCandidate) {
       throw new Error("No answer candidate has been published.");
     }
-    const dismissedParticipantIds = projection.dismissedObjections.map((item) => item.participantId);
     const event = await this.appendPluginEvent({
       type: "outcome.accepted",
       outcomeId: crypto.randomUUID(),
       answerCandidateId: currentCandidate.answerCandidateId,
       text: currentCandidate.text,
-      resolvedBy: dismissedParticipantIds.length > 0 ? "dismissed-objection" : "consensus",
-      dismissedParticipantIds
+      resolvedBy: "consensus",
+      dismissedParticipantIds: []
+    });
+    await this.updateCursor(event.cursor, path);
+    return event;
+  }
+
+  async endSession(reason?: string, path?: string) {
+    const event = await this.appendPluginEvent({
+      type: "session.ended",
+      ...(reason?.trim() ? { reason } : {})
     });
     await this.updateCursor(event.cursor, path);
     return event;
@@ -179,6 +224,7 @@ export class BarbequeueDriver {
       participantId: participant.participantId,
       state: "accepted"
     });
+    await this.setHostConsensus("accepted", undefined, path);
     const outcome = await this.acceptOutcome(path);
     const projection = await this.client.getProjection(handle.sessionId);
     await this.updateCursor(projection.lastCursor, path);
@@ -205,7 +251,7 @@ export class BarbequeueDriver {
 
     while (true) {
       const status = await this.status(path);
-      if (status.contributionCount > 0 || status.hasAcceptedOutcome) {
+      if (status.contributionCount > 0 || status.projection.consensusStates.length > 0 || status.hasAcceptedOutcome) {
         return status;
       }
 
@@ -222,6 +268,14 @@ export class BarbequeueDriver {
     path?: string
   ): Promise<AdvanceSessionResult> {
     const status = await this.status(path);
+
+    if (status.hasSessionEnded) {
+      return {
+        action: "session_ended",
+        status,
+        message: "The grilling session is ended."
+      };
+    }
 
     if (!status.hasQuestion) {
       return {
@@ -252,11 +306,11 @@ export class BarbequeueDriver {
       };
     }
 
-    if (status.contributionCount === 0) {
+    if (!status.hasAnswerCandidate && status.contributionCount === 0) {
       return {
         action: "waiting_for_contributions",
         status,
-        message: "Waiting for participant contributions before synthesis."
+        message: "Waiting for participant responses."
       };
     }
 
@@ -269,11 +323,11 @@ export class BarbequeueDriver {
       };
     }
 
-    if (status.unresolvedObjections.length > 0) {
+    if (status.unresolvedObjections.length > 0 && status.pendingConsensusMembers.length === 0) {
       return {
-        action: "host_decision_required",
+        action: "revision_required",
         status,
-        message: "One or more objections require host judgment. Revise the answer or dismiss each objection with an explicit reason."
+        message: "Everyone has responded and at least one member objected. Revise the answer candidate in Codex and publish it for another vote."
       };
     }
 
@@ -281,7 +335,7 @@ export class BarbequeueDriver {
       return {
         action: "waiting_for_consensus",
         status,
-        message: "Waiting for every participant to accept or abstain."
+        message: "Waiting for the host and every participant to accept, object, or abstain."
       };
     }
 
@@ -332,37 +386,69 @@ export class BarbequeueDriver {
     const hasQuestion = Boolean(projection.currentQuestion);
     const hasAnswerCandidate = Boolean(projection.currentAnswerCandidateId);
     const hasAcceptedOutcome = Boolean(projection.acceptedOutcome);
-    const dismissed = new Set(projection.dismissedObjections.map((item) => item.participantId));
+    const hasSessionEnded = Boolean(projection.sessionEnded);
+    const hostConsensus = projection.consensusStates.find(
+      (state) => state.memberKind === "host" && state.memberId === projection.hostDriverId
+    );
     const unresolvedObjections = projection.consensusStates
-      .filter((state) => state.state === "objected" && !dismissed.has(state.participantId))
+      .filter((state) => state.state === "objected")
       .map((state) => {
         const displayName = projection.participants.find(
           (person) => person.participantId === state.participantId
-        )?.displayName;
+        )?.displayName ?? (state.memberKind === "host" ? "Host" : undefined);
         return {
-          participantId: state.participantId,
+          memberKind: state.memberKind,
+          memberId: state.memberId,
+          ...(state.participantId ? { participantId: state.participantId } : {}),
+          ...(state.hostDriverId ? { hostDriverId: state.hostDriverId } : {}),
           ...(displayName ? { displayName } : {}),
           ...(state.reason ? { reason: state.reason } : {})
         };
       });
     const pendingParticipants = projection.participants
       .filter((person) => {
-        const state = projection.consensusStates.find((item) => item.participantId === person.participantId);
+        const state = projection.consensusStates.find(
+          (item) => item.memberKind === "participant" && item.participantId === person.participantId
+        );
         return !state || state.state === "pending";
       })
       .map((person) => ({ participantId: person.participantId, displayName: person.displayName }));
+    const consensusMembers = [
+      ...(projection.hostDriverId ? [{
+        memberKind: "host" as const,
+        memberId: projection.hostDriverId,
+        displayName: "Host"
+      }] : []),
+      ...projection.participants.map((participant) => ({
+        memberKind: "participant" as const,
+        memberId: participant.participantId,
+        displayName: participant.displayName
+      }))
+    ];
+    const pendingConsensusMembers = consensusMembers.filter((member) => {
+      const state = projection.consensusStates.find(
+        (item) => item.memberKind === member.memberKind && item.memberId === member.memberId
+      );
+      return !state || state.state === "pending";
+    });
     let nextAction = "Publish a question.";
 
-    if (!hasQuestion) {
+    if (hasSessionEnded) {
+      nextAction = "The grilling session is ended.";
+    } else if (!hasQuestion) {
       nextAction = "Publish a question, then share the invite link.";
-    } else if (contributionCount === 0) {
-      nextAction = "Share the invite link and wait for participant contributions before synthesis.";
+    } else if (!hasAnswerCandidate && contributionCount === 0) {
+      nextAction = "Share the invite link and wait for participant objections or notes before synthesis.";
     } else if (!hasAnswerCandidate) {
       nextAction = "Synthesize an answer candidate from participant contributions.";
+    } else if (projection.participants.length === 0) {
+      nextAction = "Share the invite link and wait for participant responses.";
+    } else if (unresolvedObjections.length > 0 && pendingConsensusMembers.length === 0) {
+      nextAction = "All responses are in and at least one member objected. Revise the answer candidate in Codex and publish it for another vote.";
     } else if (unresolvedObjections.length > 0) {
-      nextAction = "Resolve objections: revise the answer candidate or dismiss objections with explicit host reasons.";
+      nextAction = "Wait for every member to respond, then revise the answer candidate in Codex.";
     } else if (!projection.canAcceptOutcome) {
-      nextAction = "Wait for consensus or dismiss objections with reasons.";
+      nextAction = "Wait for the host and participants to accept, object, or abstain.";
     } else if (!hasAcceptedOutcome) {
       nextAction = "Accept the outcome.";
     } else {
@@ -376,10 +462,19 @@ export class BarbequeueDriver {
       contributionCount,
       unresolvedObjections,
       pendingParticipants,
+      pendingConsensusMembers,
+      ...(hostConsensus ? {
+        hostConsensus: {
+          state: hostConsensus.state,
+          ...(hostConsensus.reason ? { reason: hostConsensus.reason } : {})
+        }
+      } : {}),
       hasQuestion,
       hasAnswerCandidate,
       hasAcceptedOutcome,
+      hasSessionEnded,
       inviteLink: handle.inviteLink,
+      hostLink: handle.hostLink,
       nextAction
     };
   }

@@ -14,6 +14,7 @@ const CreateSessionResponseSchema = z.object({
   hostDriverToken: z.string().min(1),
   inviteCode: z.string().min(1),
   inviteLink: z.string().min(1),
+  hostLink: z.string().min(1),
   cursor: z.number().int().nonnegative()
 });
 

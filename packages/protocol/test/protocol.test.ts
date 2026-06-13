@@ -7,10 +7,10 @@ import {
 import { describe, expect, it } from "vitest";
 
 function event(cursor: number, payload: unknown) {
-  const eventPayload = payload as { type?: string; participantId?: string };
+  const eventPayload = payload as { type?: string; participantId?: string; hostDriverId?: string };
   const source = eventPayload.type === "participant.joined" ||
     eventPayload.type === "contribution.submitted" ||
-    eventPayload.type === "consensus_state.changed"
+    (eventPayload.type === "consensus_state.changed" && eventPayload.participantId)
     ? "room"
     : "plugin";
   return StoredSessionEventSchema.parse({
@@ -42,6 +42,12 @@ describe("session event protocol", () => {
       kind: "idea",
       text: "Keep generation host-side."
     }).type).toBe("contribution.submitted");
+
+    expect(validatePluginPayload({
+      type: "consensus_state.changed",
+      hostDriverId: "host-1",
+      state: "accepted"
+    }).type).toBe("consensus_state.changed");
   });
 
   it("rejects unknown event types and malformed objections", () => {
@@ -53,7 +59,7 @@ describe("session event protocol", () => {
     })).toThrow();
   });
 
-  it("projects consensus and dismissed objection state", () => {
+  it("keeps objected candidates from being accepted", () => {
     const projection = projectSession([
       event(1, {
         type: "session.created",
@@ -79,18 +85,23 @@ describe("session event protocol", () => {
       }),
       event(5, {
         type: "consensus_state.changed",
+        hostDriverId: "host-1",
+        state: "accepted"
+      }),
+      event(6, {
+        type: "consensus_state.changed",
         participantId: "participant-1",
         state: "objected",
         reason: "Needs explicit boundary."
       }),
-      event(6, {
+      event(7, {
         type: "objection.dismissed",
         participantId: "participant-1",
         reason: "Boundary is documented."
       })
     ]);
 
-    expect(projection.canAcceptOutcome).toBe(true);
+    expect(projection.canAcceptOutcome).toBe(false);
     expect(projection.sessionLog.at(-1)).toMatchObject({
       source: "plugin",
       title: "Host dismissed Marta's objection.",
@@ -121,10 +132,15 @@ describe("session event protocol", () => {
           text: "Answer"
         })
       ],
-      event(5, {
-        type: "consensus_state.changed",
-        participantId: "participant-1",
-        state: "accepted"
+        event(5, {
+          type: "consensus_state.changed",
+          hostDriverId: "host-1",
+          state: "accepted"
+        }),
+        event(6, {
+          type: "consensus_state.changed",
+          participantId: "participant-1",
+          state: "accepted"
       })
     ]);
 
@@ -133,6 +149,86 @@ describe("session event protocol", () => {
       source: "room",
       title: "Marta marked consensus as accepted."
     });
+  });
+
+  it("projects ended sessions as closed for voting", () => {
+    const projection = projectSession([
+      event(1, {
+        type: "session.created",
+        sessionId: "session-1",
+        hostDriverId: "host-1",
+        inviteCode: "invite-1"
+      }),
+      event(2, {
+        type: "question.published",
+        questionId: "question-1",
+        text: "Question"
+      }),
+      event(3, {
+        type: "participant.joined",
+        participantId: "participant-1",
+        displayName: "Marta"
+      }),
+      event(4, {
+        type: "answer_candidate.published",
+        answerCandidateId: "candidate-1",
+        text: "Answer"
+      }),
+      event(5, {
+        type: "consensus_state.changed",
+        hostDriverId: "host-1",
+        state: "accepted"
+      }),
+      event(6, {
+        type: "consensus_state.changed",
+        participantId: "participant-1",
+        state: "accepted"
+      }),
+      event(7, {
+        type: "session.ended",
+        reason: "Enough context was accepted."
+      })
+    ]);
+
+    expect(projection.sessionEnded).toMatchObject({
+      reason: "Enough context was accepted.",
+      cursor: 7
+    });
+    expect(projection.canAcceptOutcome).toBe(false);
+    expect(projection.sessionLog.at(-1)).toMatchObject({
+      source: "plugin",
+      title: "Host ended the session.",
+      body: "Enough context was accepted."
+    });
+  });
+
+  it("does not allow host-only consensus to accept an outcome", () => {
+    const projection = projectSession([
+      event(1, {
+        type: "session.created",
+        sessionId: "session-1",
+        hostDriverId: "host-1",
+        inviteCode: "invite-1"
+      }),
+      event(2, {
+        type: "question.published",
+        questionId: "question-1",
+        text: "Question",
+        recommendedAnswer: "Answer"
+      }),
+      event(3, {
+        type: "answer_candidate.published",
+        answerCandidateId: "candidate-1",
+        text: "Answer"
+      }),
+      event(4, {
+        type: "consensus_state.changed",
+        hostDriverId: "host-1",
+        state: "accepted"
+      })
+    ]);
+
+    expect(projection.canAcceptOutcome).toBe(false);
   });
 
   it("projects recommended answers and resets the current round when the next question is published", () => {
@@ -168,10 +264,15 @@ describe("session event protocol", () => {
       }),
       event(6, {
         type: "consensus_state.changed",
+        hostDriverId: "host-1",
+        state: "accepted"
+      }),
+      event(7, {
+        type: "consensus_state.changed",
         participantId: "participant-1",
         state: "abstained"
       }),
-      event(7, {
+      event(8, {
         type: "outcome.accepted",
         outcomeId: "outcome-1",
         answerCandidateId: "candidate-1",
@@ -179,7 +280,7 @@ describe("session event protocol", () => {
         resolvedBy: "consensus",
         dismissedParticipantIds: []
       }),
-      event(8, {
+      event(9, {
         type: "question.published",
         questionId: "question-2",
         text: "Second question",
@@ -189,6 +290,12 @@ describe("session event protocol", () => {
 
     expect(projection.currentQuestion?.text).toBe("Second question");
     expect(projection.currentQuestion?.recommendedAnswer).toBe("Second recommended answer");
+    expect(projection.rounds).toHaveLength(2);
+    expect(projection.rounds[0]?.question.text).toBe("First question");
+    expect(projection.rounds[0]?.answerCandidates.at(-1)?.text).toBe("First answer");
+    expect(projection.rounds[0]?.acceptedOutcome?.text).toBe("First answer");
+    expect(projection.rounds[1]?.question.text).toBe("Second question");
+    expect(projection.rounds[1]?.acceptedOutcome).toBeUndefined();
     expect(projection.contributions).toHaveLength(0);
     expect(projection.answerCandidates).toHaveLength(0);
     expect(projection.acceptedOutcome).toBeUndefined();

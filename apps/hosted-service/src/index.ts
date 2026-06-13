@@ -12,6 +12,7 @@ import {
   validateRoomPayload
 } from "@barbequeue/protocol";
 import { z } from "zod";
+import { renderHostHtml } from "./host-html";
 import { renderRoomHtml } from "./room-html";
 
 interface Env {
@@ -70,6 +71,15 @@ export default {
           const token = bearerToken(request);
           const body = AppendPluginEventSchema.parse(await readJson(request));
           const payload = validatePluginPayload(body.payload);
+          if (payload.type === "question.published") {
+            const projection = await stub.getProjection();
+            if (projection.sessionEnded) {
+              throw new HttpError(409, "The grilling session has ended");
+            }
+            if (projection.currentQuestion && !projection.acceptedOutcome) {
+              throw new HttpError(409, "Resolve the current question before publishing the next grill question");
+            }
+          }
           return withCors(Response.json({ event: await stub.appendPluginEvent(token, payload) }));
         }
 
@@ -94,6 +104,11 @@ export default {
         return html(renderRoomHtml(decodeURIComponent(roomMatch[1] ?? "")));
       }
 
+      const hostMatch = url.pathname.match(/^\/host\/([^/]+)$/);
+      if (request.method === "GET" && hostMatch) {
+        return html(renderHostHtml(decodeURIComponent(hostMatch[1] ?? "")));
+      }
+
       return withCors(Response.json({ error: "Not found" }, { status: 404 }));
     } catch (error) {
       return withCors(errorResponse(error));
@@ -110,12 +125,14 @@ async function createSession(request: Request, env: Env, url: URL): Promise<Resp
   const stub = env.SESSIONS.getByName(sessionId);
   const projection = await stub.initSession({ sessionId, hostDriverId, hostDriverToken, inviteCode });
   const inviteLink = `${url.origin}/room/${encodeURIComponent(sessionId)}?invite=${encodeURIComponent(inviteCode)}`;
+  const hostLink = `${url.origin}/host/${encodeURIComponent(sessionId)}?token=${encodeURIComponent(hostDriverToken)}`;
   return Response.json({
     sessionId,
     hostDriverId,
     hostDriverToken,
     inviteCode,
     inviteLink,
+    hostLink,
     cursor: projection.lastCursor
   });
 }
@@ -222,16 +239,30 @@ class SessionDurableObject extends DurableObject<Env> {
     if (payload.type === "session.created") {
       throw new HttpError(400, "Session creation is only allowed through session initialization");
     }
+    if (payload.type === "consensus_state.changed") {
+      const hostDriverId = this.getRequiredMeta("hostDriverId");
+      if (payload.hostDriverId !== hostDriverId) {
+        throw new HttpError(403, "Invalid host consensus member");
+      }
+    }
+    if (payload.type === "question.published") {
+      const projection = projectSession(this.getAllEvents());
+      if (projection.sessionEnded) {
+        throw new HttpError(409, "The grilling session has ended");
+      }
+      if (projection.currentQuestion && !projection.acceptedOutcome) {
+        throw new HttpError(409, "Resolve the current question before publishing the next grill question");
+      }
+    }
+    if (payload.type === "answer_candidate.published" || payload.type === "consensus_state.changed" || payload.type === "outcome.accepted") {
+      const projection = projectSession(this.getAllEvents());
+      if (projection.sessionEnded) {
+        throw new HttpError(409, "The grilling session has ended");
+      }
+    }
     if (payload.type === "outcome.accepted") {
       const projection = projectSession(this.getAllEvents());
-      const dismissedParticipantIds = new Set(
-        projection.dismissedObjections.map((objection) => objection.participantId)
-      );
-      const dismissedException =
-        payload.resolvedBy === "dismissed-objection" &&
-        payload.dismissedParticipantIds.length > 0 &&
-        payload.dismissedParticipantIds.every((participantId) => dismissedParticipantIds.has(participantId));
-      if (!projection.canAcceptOutcome && !dismissedException) {
+      if (!projection.canAcceptOutcome) {
         throw new HttpError(409, "Cannot accept outcome before session consensus");
       }
     }
@@ -270,6 +301,10 @@ class SessionDurableObject extends DurableObject<Env> {
     assertRoomOwnedPayload(payload);
     if (payload.type === "participant.joined") {
       throw new HttpError(400, "Participants must join through the join endpoint");
+    }
+    const projection = projectSession(this.getAllEvents());
+    if (projection.sessionEnded || projection.acceptedOutcome) {
+      throw new HttpError(409, "Voting is closed");
     }
 
     const participantId = "participantId" in payload ? payload.participantId : undefined;
