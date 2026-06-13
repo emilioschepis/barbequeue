@@ -1,6 +1,7 @@
 import s from './TopBar.module.css'
 import Avatar from './Avatar.jsx'
-import { Flame, GitBranch } from './icons.jsx'
+import { GitBranch } from './icons.jsx'
+import logo from '../assets/logo.svg'
 
 export default function TopBar({ session, host }) {
   const { questionIndex, questionTotal } = session
@@ -8,10 +9,7 @@ export default function TopBar({ session, host }) {
     <header className={s.bar}>
       <div className={s.left}>
         <a className={s.brand} href="#" aria-label="Barbequeue home">
-          <span className={s.brandMark}>
-            <Flame size={17} strokeWidth={1.8} />
-          </span>
-          <span className={s.brandName}>Barbequeue</span>
+          <img className={s.logo} src={logo} alt="Barbequeue" />
         </a>
 
         <span className={s.divider} aria-hidden="true" />

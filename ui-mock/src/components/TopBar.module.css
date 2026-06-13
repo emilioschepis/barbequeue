@@ -24,27 +24,15 @@
 .brand {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  font-family: var(--font-display);
-  font-weight: 800;
-  font-size: 15px;
-  letter-spacing: -0.01em;
-  color: var(--ink);
   flex-shrink: 0;
 }
 .brand:hover { text-decoration: none; }
 
-.brandMark {
-  display: grid;
-  place-items: center;
-  width: 28px;
+.logo {
+  display: block;
   height: 28px;
-  border-radius: var(--r-sm);
-  color: var(--ember);
-  background: var(--tint-ember);
+  width: auto;
 }
-
-.brandName { color: var(--ink); }
 
 .divider {
   width: 1px;
@@ -149,5 +137,5 @@
   .progress { display: none; }
   .hostMeta { display: none; }
   .divider { display: none; }
-  .brandName { display: none; }
+  .logo { height: 23px; }
 }
