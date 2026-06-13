@@ -1,0 +1,91 @@
+/* barbequeue design tokens — committed dark, ember = the agent's voice.
+   Scene: a team around a grill at dusk. Warmth is firelight on char,
+   never a beige page. OKLCH throughout. */
+
+:root {
+  /* ---- Ground & surfaces (dark mode: elevation = lighter, not shadow) ---- */
+  --bg-deep: oklch(0.13 0.01 42); /* void behind the room */
+  --bg: oklch(0.165 0.012 40); /* the char ground */
+  --surface: oklch(0.205 0.014 38); /* turn hover, quiet panels */
+  --surface-raised: oklch(0.245 0.016 38); /* composer, chips, menus */
+  --hairline: oklch(0.295 0.012 40); /* dividers, borders */
+  --hairline-strong: oklch(0.4 0.013 40); /* focus outlines on neutral */
+
+  /* ---- Ink (warm off-white, light-on-dark) ---- */
+  --ink: oklch(0.95 0.012 78); /* primary text — ~14:1 on --bg */
+  --ink-dim: oklch(0.76 0.013 70); /* secondary text */
+  --ink-faint: oklch(0.66 0.012 62); /* metadata, timestamps, placeholder */
+
+  /* ---- Ember = the fire = the agent. The singular brand voice. ---- */
+  --ember: oklch(0.564 0.231 29); /* brand seed */
+  --ember-bright: oklch(0.66 0.215 33); /* hover, live glow */
+  --ember-deep: oklch(0.43 0.16 28); /* agent turn border */
+  --on-ember: oklch(0.99 0.01 80); /* text on ember fills */
+
+  /* ---- Flame = amber accent: links, highlights, secondary state ---- */
+  --flame: oklch(0.8 0.14 72);
+  --flame-dim: oklch(0.7 0.12 70);
+  --on-flame: oklch(0.18 0.03 60);
+
+  /* ---- Human author tints: distinct, muted, none rivals the ember ---- */
+  --author-maya: oklch(0.82 0.075 66); /* warm sand */
+  --author-devin: oklch(0.8 0.066 150); /* sage */
+  --author-priya: oklch(0.8 0.07 248); /* dusk blue */
+  --author-sam: oklch(0.8 0.072 346); /* mauve */
+  --author-ink: oklch(0.16 0.01 40); /* initials sit on the tint disc */
+
+  /* ---- Semantic ---- */
+  --danger: oklch(0.64 0.18 25);
+  --danger-dim: oklch(0.46 0.14 25);
+  --ok: oklch(0.74 0.12 150);
+
+  /* ---- Idea-state (cooked, not raw) ---- */
+  --raw: oklch(0.62 0.03 230); /* fresh — cool, uncommitted */
+  --grilling: var(--flame); /* on the grill — amber heat */
+  --settled: oklch(0.7 0.14 32); /* settled — banked ember, calm */
+
+  /* ---- Type ---- */
+  --font: 'Helvetica Now Display', -apple-system, BlinkMacSystemFont,
+    'Segoe UI', system-ui, sans-serif;
+  --text-xs: 0.75rem; /* 12 */
+  --text-sm: 0.875rem; /* 14 */
+  --text-base: 1rem; /* 16 */
+  --text-md: 1.1875rem; /* 19 */
+  --text-lg: 1.5rem; /* 24 */
+  --text-xl: 2rem; /* 32 */
+  --text-2xl: clamp(2.25rem, 1.6rem + 2.6vw, 3.25rem); /* empty-state display */
+  --lh-tight: 1.14;
+  --lh-snug: 1.32;
+  --lh-body: 1.6; /* light-on-dark gets the looser end */
+
+  /* ---- Space ---- */
+  --s1: 0.25rem;
+  --s2: 0.5rem;
+  --s3: 0.75rem;
+  --s4: 1rem;
+  --s5: 1.5rem;
+  --s6: 2rem;
+  --s7: 3rem;
+  --s8: 4rem;
+
+  /* ---- Radius ---- */
+  --r-sm: 7px;
+  --r-md: 11px;
+  --r-lg: 18px;
+  --r-full: 999px;
+
+  /* ---- Motion (state, not choreography) ---- */
+  --dur-fast: 140ms;
+  --dur: 220ms;
+  --dur-slow: 360ms;
+  --ease: cubic-bezier(0.22, 1, 0.36, 1); /* ease-out-quint */
+
+  /* ---- Z scale (semantic, never 9999) ---- */
+  --z-base: 0;
+  --z-sticky: 100;
+  --z-composer: 200;
+  --z-menu: 300;
+  --z-toast: 400;
+
+  --measure: 68ch;
+}
