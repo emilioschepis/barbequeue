@@ -32,9 +32,21 @@ _Avoid_: Deleted user, banned user, kicked guest
 A browser-based space where participants join a grilling session without installing Codex or accessing the host's repository.
 _Avoid_: Plugin client, viewer page, guest portal
 
+**Hosted Service**:
+The cloud-hosted Barbequeue system that owns shared session state, invite links, participant rooms, and session records without receiving raw repository files.
+_Avoid_: Platform, backend, cloud app
+
+**Codex Plugin**:
+The host-side Barbequeue component that runs in Codex, provides the repo-backed environment for a grilling session, and drives the underlying skill on the host's behalf.
+_Avoid_: Thin launcher, client, repo proxy
+
 **Invite Link**:
 A host-created link that lets a person enter the participant room after providing a visible display name.
 _Avoid_: Access token, login, meeting link
+
+**Session Handle**:
+The host-side local reference that lets the Codex Plugin resume its driver role for an existing grilling session.
+_Avoid_: Access token, invite link, session cookie
 
 **Grilling Question**:
 A single agent-authored challenge that the group resolves through contributions and answer candidates before the host advances the session.
@@ -88,9 +100,21 @@ _Avoid_: Automatic repo sharing, source exposure, private setup context
 The durable record of shared context, contributions, answer candidates, objections, abstentions, and outcomes from a grilling session.
 _Avoid_: Repository snapshot, recording, chat history
 
+**Session Event**:
+A durable session record entry that describes a published lifecycle change, participant contribution, or consensus state change in order.
+_Avoid_: Webhook, log line, database update
+
+**Session Resume**:
+The act of a Codex Plugin reconnecting to an existing grilling session and restoring its host-side session driver role from the session record.
+_Avoid_: Rejoin, takeover, reload
+
 **Synthesis Context**:
 The structured session material given to the agent when it proposes or revises an answer candidate.
 _Avoid_: Full transcript, prompt dump, raw room state
+
+**Synthesis Request**:
+A host action that asks the Codex Plugin to produce or revise an answer candidate from the current response phase.
+_Avoid_: Auto-summary, regenerate, submit discussion
 
 **Underlying Skill**:
 The single-agent workflow that a grilling session extends with participant discussion and consensus.
