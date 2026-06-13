@@ -8,19 +8,20 @@ description: Repo-grounded multiplayer grilling sessions — heat held in reserv
 
 ## 1. Overview
 
-**Creative North Star: "The Cold Forge"**
+**Creative North Star: "Charcoal & Ember"**
 
-A forge is cool most of the time. It glows only at the instant metal is being
-shaped — and that glow is the whole point. Barbequeue works the same way: calm,
-neutral, instrumented surfaces where the structure of a decision is always legible,
-and a single hot accent appears only at the moments that carry heat — an open
-objection, an unresolved question, a stance that blocks consensus. The interface
-stays out of the way so the *content* of the grill carries the tension.
+A grill at rest is dark warm charcoal. Heat lives in it as a steady ember glow — and
+when something flares up, you see it instantly against the dark. Barbequeue works the
+same way: dark warm-charcoal surfaces where the structure of a decision is always
+legible, a restrained **ember** as the brand's steady glow (primary actions,
+selection, focus), and distinct, louder **functional colors** that flare only where
+meaning demands it — a green accept, a hot-red objection. The interface stays dark and
+calm so the *content* of the grill carries the tension.
 
 The personality is **sharp, spirited, deliberate**. It borrows Linear's crisp,
 opinionated, keyboard-first precision and 37signals' (HEY / Campfire) characterful,
 deliberately anti-enterprise voice — confident and a little wry, never loud. Heat
-lives in copy, in the one reserved accent, and in the few moments of
+lives in copy, in the ember brand, and in the few functional flares of
 tension/resolution; never in decorative chrome.
 
 This system explicitly rejects three things: the **corporate enterprise tool**
@@ -30,31 +31,43 @@ card grids, gradient accents), and the **chat/Slack clone** (a message stream wh
 the structured consensus workflow dissolves into a flat feed).
 
 **Key Characteristics:**
-- Cool/neutral base; one hot accent on ≤10% of any screen, reserved for tension.
+- Dark warm-charcoal base; **ember** as the restrained brand glow; functional colors
+  kept deliberately distinct from the brand so brand never reads as meaning.
 - Structure over stream: questions, contributions, answer candidates, and consensus
   state always read as distinct, ordered things.
 - Flat and instrumented at rest; restrained motion that confirms state, never performs.
+  The one permitted glow is ember/objection heat — a signature, not decoration.
 - One technical-sans superfamily (Helvetica Now Display + Now Text) carrying the whole hierarchy by weight and optical size.
 
 ## 2. Colors
 
-A cool, near-neutral foundation with a single hot accent held in reserve. The
-strategy is **Restrained**: the accent earns its rarity by marking only what carries
-heat.
+A dark warm-charcoal foundation, a restrained **ember** brand, and a small set of
+distinct **functional** colors. The strategy is **Restrained**: ember is the only
+brand color and functional hues flare only where meaning demands. The defining move is
+the split — **brand colors and functional colors must never be confused.**
 
-### Primary
-- **Reserved Heat** (hot accent — ember/red-orange family, exact value `[to be resolved during implementation]`): The one hot color. Used on ≤10% of any screen, reserved for moments of tension — an active **Objection**, an unresolved **Grilling Question**, a blocking consensus state, a primary commit action. Its scarcity is what makes it read as heat.
+### Primary (Brand)
+- **Ember** (`oklch(0.68 0.115 48)`; bright `oklch(0.75 0.13 52)`, dim `oklch(0.50 0.09 45)`): The brand's steady glow. Used for primary actions (Advance, submit), current selection, focus rings, and links. Chroma is held **low on purpose** (~0.11) — a glowing coal, not an acid orange. White/near-white text on ember fills (verify ≥3:1 for button labels).
 
-### Neutral
-- **Cool base** (`[to be resolved during implementation]`): Page and surface backgrounds. Cool/neutral, not warm — no cream, sand, or parchment.
-- **Ink** (`[to be resolved during implementation]`): Primary text. Must clear ≥4.5:1 on the base; resist the urge to go light-gray "for elegance".
-- **Muted** (`[to be resolved during implementation]`): Secondary text, metadata, timestamps. Still ≥4.5:1 for body-sized use.
-- **Line** (`[to be resolved during implementation]`): Borders and dividers that carry the structure between workflow stages.
+### Neutral (Charcoal)
+- **Charcoal base** (`oklch(0.165 0.007 50)`): Page background. Dark warm-neutral — the grill at rest. This warmth is the brand's own; it is *not* the banned light cream/sand.
+- **Surface** (`oklch(0.210 0.008 50)`) / **Surface-2** (`oklch(0.255 0.009 50)`): Panels, cards, inputs — raised by lightness, not shadow.
+- **Line** (`oklch(0.32 0.011 50)`): Borders and dividers that carry the structure between workflow stages.
+- **Ink** (`oklch(0.95 0.006 60)`): Primary text. Clears ≥7:1 on charcoal.
+- **Muted** (`oklch(0.70 0.010 55)`): Secondary text, metadata, timestamps. ≥4.5:1 on charcoal.
+
+### Functional (Semantic — deliberately not the brand)
+- **Accepted** (`oklch(0.74 0.15 150)`, green): An accepted consensus state.
+- **Objected** (`oklch(0.60 0.195 20)`, hot red): A blocking objection — redder and more saturated than ember, so it reads as alarm, never as brand. The one element permitted a subtle glow.
+- **Clarify / Info** (`oklch(0.72 0.115 230)`, cool blue): Clarifying contributions and informational cues.
+- **Abstained / Pending**: no hue — `muted` fill (abstained) or a hollow `line` outline (pending). Absence of color is itself the signal.
 
 ### Named Rules
-**The Reserved Heat Rule.** The hot accent is forbidden as decoration. It appears only where there is real tension in the workflow — an open objection, a blocking stance, an unresolved question, the one primary action. If it's on more than ~10% of the screen, the forge is too hot; cool it down.
+**The Brand-Is-Not-Meaning Rule.** Ember is brand; it never encodes a consensus state. Functional colors (green/red/blue) encode meaning; they are never used decoratively or as brand. Keep them distinct in hue *and* saturation so a glance never mistakes a primary action for an accepted state.
 
-**The No-Warm-Neutral Rule.** Neutrals are cool, never cream/sand/parchment. Warmth in this product is the *accent's* job, released deliberately — not a default tint baked into the background.
+**The Steady-Glow Rule.** Ember chroma stays ~0.11. If it starts to glow acid-bright, it's competing with the functional flares; pull it back. The only element allowed real glow (a soft shadow) is an active objection.
+
+**The Dark-Warmth Rule.** The warm tint belongs to *dark* charcoal surfaces only. Light warm near-whites (cream/sand/parchment) remain banned — that warmth is the AI-default cliché; ours lives in the brand and the dark base, never a light background.
 
 ## 3. Typography
 
@@ -77,12 +90,16 @@ heat.
 ## 4. Elevation
 
 Flat by default. Motion is **Restrained** (state changes only), and depth follows:
-surfaces sit on the cool base and are separated by **lines and spacing**, not by
-shadow stacks. Depth and emphasis are conveyed by the structure of the workflow and
-the reserved accent — not by floating cards.
+surfaces sit on the charcoal base and are separated by **lightness, lines, and
+spacing**, not by shadow stacks. Depth and emphasis are conveyed by the structure of
+the workflow and the ember brand — not by floating cards.
+
+The one exception is **ember/objection glow**: an active objection (and, sparingly,
+the primary ember action) may carry a soft colored shadow. That glow is the system's
+signature — heat visible in the dark — not generic elevation.
 
 ### Named Rules
-**The Flat-By-Default Rule.** Surfaces are flat at rest. Any shadow appears only as a brief response to direct interaction (a dragged item, an open menu, a focused control) — never as ambient decoration on resting cards.
+**The Flat-By-Default Rule.** Surfaces are flat at rest. Neutral shadows appear only as a brief response to direct interaction (an open menu, a focused control), never as ambient decoration on resting cards. The sole standing glow permitted is the ember/objection heat.
 
 ## 5. Components
 
@@ -92,16 +109,17 @@ the reserved accent — not by floating cards.
 
 ### Do:
 - **Do** keep the workflow structure visible: questions, contributions, answer candidates, and consensus state must always read as distinct, ordered things.
-- **Do** reserve the hot accent for tension (objections, unresolved questions, blocking stances, the one primary action) and keep it on ≤10% of any screen.
+- **Do** keep ember (brand) and functional colors strictly separate — ember for actions/selection/focus, functional hues for meaning only.
+- **Do** keep ember restrained (chroma ~0.11); let the green/red functional flares be the saturated moments.
 - **Do** build the whole type hierarchy from the Helvetica Now superfamily — Now Display for large text, Now Text at reading size.
-- **Do** keep neutrals cool and text contrast at ≥4.5:1 for body, ≥3:1 for large text.
-- **Do** keep surfaces flat at rest; convey separation with lines and spacing.
+- **Do** keep text contrast at ≥4.5:1 for body, ≥3:1 for large text on the charcoal base.
+- **Do** keep surfaces flat at rest; convey separation with lightness, lines, and spacing.
 - **Do** make raising and resolving an objection feel cheap and safe — it's the point of a grill.
 
 ### Don't:
 - **Don't** make it look like a **corporate enterprise tool** — no heavy gray Jira/Confluence density, no bureaucratic, joyless chrome.
 - **Don't** make it look like a **generic SaaS template** — no cream/sand/parchment backgrounds, no hero-metric blocks, no identical icon+heading+text card grids, no decorative gradient accents.
 - **Don't** let the consensus workflow collapse into a **chat/Slack clone** — no undifferentiated message-stream feed.
-- **Don't** use the hot accent decoratively, or on more than ~10% of a screen.
-- **Don't** use warm default-tinted neutrals; warmth is the accent's job, released deliberately.
-- **Don't** add ambient shadows to resting surfaces, or set body/UI text in Now Display (use Now Text below ~20–24px), or introduce a sans outside the Helvetica Now superfamily.
+- **Don't** encode a consensus state in ember, or use a functional color (green/red/blue) as decoration or brand.
+- **Don't** use **light** warm-tinted neutrals (cream/sand/parchment); warmth lives only in the ember brand and the dark charcoal base.
+- **Don't** add ambient neutral shadows to resting surfaces (the sole standing glow is ember/objection heat), set body/UI text in Now Display (use Now Text below ~20–24px), or introduce a sans outside the Helvetica Now superfamily.
