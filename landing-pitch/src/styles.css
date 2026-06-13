@@ -189,7 +189,6 @@ button {
 .wordmark {
   width: min(190px, 44vw);
   height: auto;
-  filter: invert(96%) sepia(6%) saturate(164%) hue-rotate(2deg) brightness(98%);
 }
 
 .hero-copy h1,

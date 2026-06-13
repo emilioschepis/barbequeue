@@ -1,0 +1,488 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Barbequeue 90-second video renderer</title>
+    <style>
+      html,
+      body {
+        margin: 0;
+        min-width: 100%;
+        min-height: 100%;
+        overflow: hidden;
+        background: #191816;
+      }
+
+      body {
+        display: grid;
+        place-items: center;
+      }
+
+      canvas {
+        width: min(100vw, calc(100vh * 16 / 9));
+        aspect-ratio: 16 / 9;
+        background: #191816;
+      }
+
+      #status {
+        position: fixed;
+        left: 16px;
+        bottom: 14px;
+        color: #aaa39b;
+        font: 12px/1.4 system-ui, sans-serif;
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="video" width="1920" height="1080"></canvas>
+    <div id="status">Ready</div>
+
+    <script>
+      const W = 1920;
+      const H = 1080;
+      const DURATION = 90;
+      const FPS = 30;
+      const canvas = document.getElementById("video");
+      const ctx = canvas.getContext("2d", { alpha: false });
+      const statusEl = document.getElementById("status");
+
+      const C = {
+        charcoal: "#191816",
+        deep: "#11100f",
+        surface: "#252321",
+        surface2: "#34312e",
+        line: "#5a514b",
+        ink: "#f4f0e8",
+        muted: "#aaa39b",
+        ember: "#d38358",
+        accepted: "#5fd38d",
+        objected: "#db4d3f",
+        info: "#70b6db",
+      };
+
+      const logo = new Image();
+      logo.src = "../../barbequeue-identity/logo.svg";
+
+      const captions = [
+        [0, 12, "AI gave us a bigger fire. But it took away the people."],
+        [12, 24, "The grill sharpens the plan. The hard part is getting the team to agree."],
+        [24, 36, "One host lights the grill, drops in a plan, and shares a link."],
+        [36, 48, "The AI asks one sharp Grilling Question the room has to resolve."],
+        [48, 61, "Ideas, clarifications, abstentions, and objections stay visible."],
+        [61, 73, "The agent mediates until the objection is actually handled."],
+        [73, 78, "Until the room lands on one."],
+        [78, 85, "Accepted Outcome. Session Record. Documentation ready for review."],
+        [85, 90, "Artificial Intelligence, powered by Human Intelligence."],
+      ];
+
+      const contributions = [
+        ["Document the fallback path", 390, 330, "idea"],
+        ["Clarify who owns rollout", 1160, 330, "info"],
+        ["Risk: participants may miss context", 390, 740, "object"],
+        ["Keep raw repo files local", 1110, 740, "idea"],
+      ];
+
+      async function loadAssets() {
+        const faces = [
+          new FontFace("Helvetica Now Display", "url('../public/fonts/HelveticaNowDisplay-Black.ttf')", {
+            weight: "900",
+          }),
+          new FontFace("Helvetica Now Text", "url('../public/fonts/HelveticaNowText-Regular.woff2')", {
+            weight: "400",
+          }),
+          new FontFace("Helvetica Now Text", "url('../public/fonts/HelveticaNowText-Bold.woff2')", {
+            weight: "700",
+          }),
+        ];
+        await Promise.all(faces.map((face) => face.load().then((loaded) => document.fonts.add(loaded))));
+        await document.fonts.ready;
+        await new Promise((resolve, reject) => {
+          if (logo.complete) resolve();
+          logo.onload = resolve;
+          logo.onerror = reject;
+        });
+      }
+
+      const clamp = (n, min = 0, max = 1) => Math.max(min, Math.min(max, n));
+      const smooth = (n) => {
+        n = clamp(n);
+        return n * n * (3 - 2 * n);
+      };
+      const between = (t, a, b) => clamp((t - a) / (b - a));
+      const lerp = (a, b, p) => a + (b - a) * p;
+
+      function draw(t) {
+        background(t);
+        logoAt(72, 52, 250, 0.95);
+        if (t < 12) hero(t);
+        else if (t < 24) problem(t);
+        else if (t < 36) start(t);
+        else if (t < 48) question(t);
+        else if (t < 61) workflow(t, between(t, 48, 61), 0, 0);
+        else if (t < 73) workflow(t, 1, between(t, 61, 73), 0);
+        else if (t < 78) workflow(t, 1, 1, between(t, 73, 78));
+        else if (t < 85) outcome(t);
+        else cta(t);
+        caption(t);
+        progress(t);
+      }
+
+      function background(t) {
+        const g = ctx.createLinearGradient(0, 0, 0, H);
+        g.addColorStop(0, "#211f1c");
+        g.addColorStop(0.42, C.charcoal);
+        g.addColorStop(1, C.deep);
+        ctx.fillStyle = g;
+        ctx.fillRect(0, 0, W, H);
+        ctx.save();
+        ctx.globalAlpha = 0.16;
+        ctx.strokeStyle = C.line;
+        for (let x = -80 + ((t * 8) % 80); x < W + 80; x += 80) line(x, 0, x, H);
+        for (let y = -80 + ((t * 8) % 80); y < H + 80; y += 80) line(0, y, W, y);
+        ctx.restore();
+        glow(960, 530, 500, C.ember, 0.08 + Math.sin(t * 0.7) * 0.02);
+      }
+
+      function hero(t) {
+        const p = between(t, 0, 12);
+        marks(960, 395, 46, p);
+        headline("Nobody grills alone.", 960, 540, 120, "center", 820);
+        text("Many human inputs. One shared decision.", 960, 665, 34, "center", C.muted, 800);
+      }
+
+      function problem(t) {
+        ghostMarks(between(t, 12, 24));
+        panel(380, 390, 1160, 245);
+        ctx.fillStyle = C.ember;
+        round(430, 440, 6, 145, 3, true);
+        headline("AI can sharpen the plan.", 500, 500, 60, "left", 850);
+        text("But the agreement still happens later, somewhere else, and off the record.", 500, 590, 30, "left", C.muted, 880);
+      }
+
+      function start(t) {
+        const p = between(t, 24, 36);
+        panel(320, 250, 1280, 530);
+        label("SESSION REQUEST", 390, 326, C.muted);
+        headline("Pressure-test the launch plan before we touch the docs.", 390, 425, 54, "left", 1000);
+        button("Light the grill", 390, 614, 240, 66, p);
+        ctx.strokeStyle = C.line;
+        line(760, 650, 1430, 650);
+        for (let i = 0; i < 5; i++) {
+          ctx.globalAlpha = smooth(clamp(p * 1.5 - i * 0.13));
+          ctx.fillStyle = i === 2 ? C.ember : C.ink;
+          circle(870 + i * 118, 650 - Math.sin(i) * 38, 13);
+        }
+        ctx.globalAlpha = 1;
+      }
+
+      function question(t) {
+        const p = between(t, 36, 48);
+        room(p);
+        panel(410, 318, 1100, 350);
+        label("GRILLING QUESTION", 495, 397, C.ember);
+        headline("What has to be true before this plan is safe to ship?", 495, 520, 62, "left", 930);
+        text("The host holds the gavel. One question, resolved together.", 495, 625, 28, "left", C.muted, 780);
+      }
+
+      function workflow(_t, contributionP, mediationP, consensusP) {
+        panel(355, 214, 1210, 690);
+        label("GRILLING QUESTION", 455, 295, C.ember);
+        headline("What has to be true before this plan is safe to ship?", 455, 365, 48, "left", 850);
+        const cx = 960;
+        const cy = 596;
+        if (mediationP > 0) {
+          ctx.save();
+          ctx.globalAlpha = mediationP * 0.5;
+          ctx.strokeStyle = C.line;
+          contributions.forEach(([, x, y]) => line(x + 150, y + 35, cx, cy));
+          ctx.restore();
+        }
+        contributions.forEach(([value, x0, y0, kind], index) => {
+          const inP = smooth(clamp(contributionP * 1.3 - index * 0.18));
+          const pull = smooth(mediationP);
+          const x = lerp(x0, cx - 265 + index * 28, pull);
+          const y = lerp(y0, cy - 120 + index * 26, pull);
+          contribution(value, x, y, kind, inP * (1 - consensusP * 0.8), pull);
+        });
+        if (mediationP > 0.14 || consensusP > 0) {
+          ctx.save();
+          ctx.globalAlpha = smooth(between(mediationP, 0.12, 0.55));
+          answer(cx - 410, cy + 70 - consensusP * 44, consensusP);
+          ctx.restore();
+        }
+        if (consensusP > 0.22) badge("Accepted", 1185, 742, C.accepted, smooth(between(consensusP, 0.2, 0.75)));
+      }
+
+      function outcome(t) {
+        const p = between(t, 78, 85);
+        headline("A sharper plan. A team that agrees on it.", 270, 245, 70, "left", 940);
+        band(300, 470, "Documentation Change", "Host-reviewed, repo-ready summary", C.ember, p);
+        band(980, 470, "Session Record", "Accepted outcome, objections, and context preserved", C.accepted, p);
+      }
+
+      function cta(t) {
+        const p = between(t, 85, 90);
+        glow(960, 520, 520, C.ember, 0.14);
+        logoAt(710, 265, 500, 1);
+        headline("AI - powered by - HI", 960, 552, 86, "center", 980);
+        text("Try Barbequeue on the Codex marketplace", 960, 674, 34, "center", C.ink, 820);
+        button("Tell us what you think", 805, 735, 310, 68, p);
+        marks(960, 850, 28, p);
+      }
+
+      function logoAt(x, y, w, alpha) {
+        ctx.save();
+        ctx.globalAlpha = alpha;
+        ctx.drawImage(logo, x, y, w, (w * 132) / 610);
+        ctx.restore();
+      }
+
+      function headline(value, x, y, size, align, maxWidth) {
+        ctx.font = `900 ${size}px 'Helvetica Now Display'`;
+        ctx.fillStyle = C.ink;
+        ctx.textAlign = align;
+        ctx.textBaseline = "middle";
+        wrap(value, x, y, maxWidth, size * 0.93);
+      }
+
+      function text(value, x, y, size, align, color, maxWidth) {
+        ctx.font = `400 ${size}px 'Helvetica Now Text'`;
+        ctx.fillStyle = color;
+        ctx.textAlign = align;
+        ctx.textBaseline = "middle";
+        wrap(value, x, y, maxWidth, size * 1.36);
+      }
+
+      function label(value, x, y, color) {
+        ctx.font = "700 22px 'Helvetica Now Text'";
+        ctx.fillStyle = color;
+        ctx.textAlign = "left";
+        ctx.textBaseline = "middle";
+        ctx.fillText(value, x, y);
+      }
+
+      function panel(x, y, w, h) {
+        ctx.fillStyle = "rgba(37,35,33,0.93)";
+        ctx.strokeStyle = C.line;
+        ctx.lineWidth = 1.5;
+        round(x, y, w, h, 0, true);
+        round(x, y, w, h, 0, false);
+      }
+
+      function button(value, x, y, w, h, p) {
+        ctx.save();
+        ctx.fillStyle = C.ember;
+        ctx.shadowColor = "rgba(211,131,88,0.34)";
+        ctx.shadowBlur = 26 * smooth(p);
+        round(x, y, w, h, 0, true);
+        ctx.shadowBlur = 0;
+        ctx.fillStyle = C.ink;
+        ctx.font = "700 24px 'Helvetica Now Text'";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(value, x + w / 2, y + h / 2);
+        ctx.restore();
+      }
+
+      function contribution(value, x, y, kind, alpha, pull) {
+        if (alpha <= 0) return;
+        const color = kind === "info" ? C.info : kind === "object" ? C.objected : C.ink;
+        ctx.save();
+        ctx.globalAlpha = alpha;
+        ctx.fillStyle = "rgba(52,49,46,0.94)";
+        ctx.strokeStyle = kind === "object" ? C.objected : kind === "info" ? C.info : C.line;
+        if (kind === "object") {
+          ctx.shadowColor = "rgba(219,77,63,0.35)";
+          ctx.shadowBlur = 22 * (1 - pull);
+        }
+        round(x, y, 390 - pull * 80, 70, 0, true);
+        ctx.shadowBlur = 0;
+        round(x, y, 390 - pull * 80, 70, 0, false);
+        ctx.fillStyle = color;
+        ctx.font = "700 23px 'Helvetica Now Text'";
+        ctx.textAlign = "left";
+        ctx.textBaseline = "middle";
+        ctx.fillText(value, x + 22, y + 36, 340 - pull * 60);
+        ctx.restore();
+      }
+
+      function answer(x, y, consensusP) {
+        panel(x, y, 820, 156);
+        label("ANSWER CANDIDATE", x + 36, y + 42, consensusP > 0.4 ? C.accepted : C.ember);
+        headline("Ship only after rollout ownership, fallback behavior, and participant context are documented.", x + 36, y + 105, 34, "left", 730);
+      }
+
+      function badge(value, x, y, color, alpha) {
+        ctx.save();
+        ctx.globalAlpha = alpha;
+        ctx.fillStyle = color;
+        round(x, y, 210, 54, 0, true);
+        ctx.fillStyle = "#102116";
+        ctx.font = "700 24px 'Helvetica Now Text'";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(value, x + 105, y + 28);
+        ctx.restore();
+      }
+
+      function band(x, y, title, body, color, p) {
+        ctx.save();
+        ctx.globalAlpha = smooth(p);
+        panel(x, y, 610, 235);
+        ctx.fillStyle = color;
+        ctx.fillRect(x, y, 610, 4);
+        label(title.toUpperCase(), x + 40, y + 62, color);
+        headline(title, x + 40, y + 122, 42, "left", 520);
+        text(body, x + 40, y + 186, 24, "left", C.muted, 510);
+        ctx.restore();
+      }
+
+      function caption(t) {
+        const current = captions.find(([from, to]) => t >= from && t < to) || captions.at(-1);
+        const [from, to, value] = current;
+        const a = smooth(between(t, from, from + 0.45)) * (1 - smooth(between(t, to - 0.45, to)));
+        ctx.save();
+        ctx.globalAlpha = a * 0.78;
+        ctx.fillStyle = "rgba(17,16,15,0.72)";
+        round(430, 942, 1060, 62, 0, true);
+        text(value, 960, 984, 24, "center", C.ink, 980);
+        ctx.restore();
+      }
+
+      function progress(t) {
+        ctx.fillStyle = "rgba(244,240,232,0.18)";
+        ctx.fillRect(70, 1032, 1780, 2);
+        ctx.fillStyle = C.ember;
+        ctx.fillRect(70, 1032, 1780 * clamp(t / DURATION), 2);
+      }
+
+      function marks(cx, cy, r, p) {
+        const gap = r * 1.45;
+        [
+          [cx - gap * 1.5, cy, "circle", C.ink],
+          [cx - gap * 0.5, cy, "circle", C.ink],
+          [cx + gap * 0.5, cy, "circle", C.ember],
+          [cx + gap * 1.5, cy, "square", C.ink],
+        ].forEach(([x, y, shape, color], i) => {
+          const s = 0.75 + smooth(clamp(p * 1.4 - i * 0.16)) * 0.25;
+          ctx.fillStyle = color;
+          shape === "circle" ? circle(x, y, r * s) : ctx.fillRect(x - r * s, y - r * s, r * 2 * s, r * 2 * s);
+        });
+      }
+
+      function ghostMarks(p) {
+        ctx.save();
+        ctx.globalAlpha = smooth(p) * 0.26;
+        marks(1540, 530, 28, p);
+        marks(260, 620, 20, p);
+        ctx.restore();
+      }
+
+      function room(p) {
+        [[370, 255], [1540, 280], [330, 770], [1550, 760], [520, 885], [1380, 880]].forEach(([x, y], i) => {
+          ctx.save();
+          ctx.globalAlpha = smooth(clamp(p * 1.5 - i * 0.12));
+          ctx.fillStyle = i === 2 ? C.ember : C.ink;
+          circle(x, y, 24);
+          ctx.restore();
+        });
+      }
+
+      function wrap(value, x, y, maxWidth, lineHeight) {
+        const words = value.split(" ");
+        const lines = [];
+        let line = "";
+        for (const word of words) {
+          const test = line ? `${line} ${word}` : word;
+          if (ctx.measureText(test).width > maxWidth && line) {
+            lines.push(line);
+            line = word;
+          } else {
+            line = test;
+          }
+        }
+        lines.push(line);
+        const start = y - ((lines.length - 1) * lineHeight) / 2;
+        lines.forEach((item, i) => ctx.fillText(item, x, start + i * lineHeight));
+      }
+
+      function circle(x, y, r) {
+        ctx.beginPath();
+        ctx.arc(x, y, r, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      function line(x1, y1, x2, y2) {
+        ctx.beginPath();
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
+        ctx.stroke();
+      }
+
+      function round(x, y, w, h, r, fill) {
+        ctx.beginPath();
+        ctx.roundRect(x, y, w, h, r);
+        fill ? ctx.fill() : ctx.stroke();
+      }
+
+      function glow(x, y, radius, color, alpha) {
+        const n = parseInt(color.slice(1), 16);
+        const rgba = `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},`;
+        const g = ctx.createRadialGradient(x, y, 0, x, y, radius);
+        g.addColorStop(0, `${rgba}${alpha})`);
+        g.addColorStop(1, "rgba(0,0,0,0)");
+        ctx.fillStyle = g;
+        ctx.fillRect(0, 0, W, H);
+      }
+
+      window.renderFrame = async (seconds) => {
+        await loadAssets();
+        draw(seconds);
+      };
+
+      window.startRenderAndDownload = async () => {
+        await loadAssets();
+        const stream = canvas.captureStream(FPS);
+        const mimeType = ["video/webm;codecs=vp9", "video/webm;codecs=vp8", "video/webm"].find((type) =>
+          MediaRecorder.isTypeSupported(type),
+        );
+        const recorder = new MediaRecorder(stream, { mimeType, videoBitsPerSecond: 14_000_000 });
+        const chunks = [];
+        recorder.ondataavailable = (event) => {
+          if (event.data.size) chunks.push(event.data);
+        };
+        const stopped = new Promise((resolve) => {
+          recorder.onstop = resolve;
+        });
+        statusEl.textContent = "Recording 90s video...";
+        recorder.start(1000);
+        const started = performance.now();
+        await new Promise((resolve) => {
+          function tick(now) {
+            const t = Math.min(DURATION, (now - started) / 1000);
+            draw(t);
+            statusEl.textContent = `Recording ${Math.floor(t)} / ${DURATION}s`;
+            if (t < DURATION) requestAnimationFrame(tick);
+            else resolve();
+          }
+          requestAnimationFrame(tick);
+        });
+        await new Promise((resolve) => setTimeout(resolve, 500));
+        recorder.stop();
+        await stopped;
+        const blob = new Blob(chunks, { type: mimeType });
+        const link = document.createElement("a");
+        link.href = URL.createObjectURL(blob);
+        link.download = "barbequeue-90s.webm";
+        document.body.appendChild(link);
+        link.click();
+        statusEl.textContent = "Done";
+      };
+
+      loadAssets().then(() => draw(6)).catch((error) => {
+        statusEl.textContent = error.message;
+      });
+    </script>
+  </body>
+</html>
