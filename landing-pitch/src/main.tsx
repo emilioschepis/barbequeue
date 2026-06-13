@@ -10,12 +10,6 @@ import {
 import { QRCodeSVG } from "qrcode.react";
 import "./styles.css";
 
-const MARKETPLACE_URL =
-  import.meta.env.VITE_MARKETPLACE_URL ||
-  (typeof window !== "undefined"
-    ? `${window.location.origin}${window.location.pathname}`
-    : "https://barbequeue.local");
-
 const FEEDBACK_URL =
   import.meta.env.VITE_FEEDBACK_URL || "https://forms.gle/cyaSrZMk9PWd4WKm9";
 
@@ -342,17 +336,14 @@ function App() {
         </div>
         <div className="cta-lockup">
           <div className="cta-copy">
-            <span className="cta-kicker">Codex marketplace</span>
+            <span className="cta-kicker">Hackathon feedback</span>
             <h2>Grill the plan. Leave with the record.</h2>
             <p>
               Run a focused grill with your team, resolve objections, and leave with
               a host-reviewed documentation change.
             </p>
             <div className="cta-actions">
-              <a className="primary-action" href={MARKETPLACE_URL}>
-                Try Barbequeue on Codex
-              </a>
-              <a className="secondary-action" href={FEEDBACK_URL}>
+              <a className="primary-action" href={FEEDBACK_URL}>
                 Send feedback after the session
               </a>
             </div>
@@ -361,15 +352,15 @@ function App() {
           <div className="qr-block">
             <span>Scan after the pitch</span>
             <QRCodeSVG
-              value={MARKETPLACE_URL}
-              title="QR code for the Barbequeue Codex marketplace link"
+              value={FEEDBACK_URL}
+              title="QR code for the Barbequeue feedback form"
               size={178}
               bgColor="transparent"
               fgColor="#f4f0e8"
               level="M"
               marginSize={2}
             />
-            <b>{shortUrl(MARKETPLACE_URL)}</b>
+            <b>{shortUrl(FEEDBACK_URL)}</b>
           </div>
         </div>
       </section>
