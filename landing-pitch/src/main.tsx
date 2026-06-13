@@ -16,7 +16,8 @@ const MARKETPLACE_URL =
     ? `${window.location.origin}${window.location.pathname}`
     : "https://barbequeue.local");
 
-const FEEDBACK_URL = import.meta.env.VITE_FEEDBACK_URL || MARKETPLACE_URL;
+const FEEDBACK_URL =
+  import.meta.env.VITE_FEEDBACK_URL || "https://forms.gle/cyaSrZMk9PWd4WKm9";
 
 const sections = ["hero", "problem", "reveal", "outcome", "cta"] as const;
 const sectionLabels = ["Hero", "Problem", "Reveal", "Outcome", "Call to action"] as const;
