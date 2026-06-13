@@ -1,0 +1,141 @@
+.item {
+  display: flex;
+  gap: var(--s3);
+  padding: var(--s4) 0;
+}
+.item + .item { border-top: 1px solid var(--line); }
+
+.body {
+  flex: 1;
+  min-width: 0;
+}
+
+.meta {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  flex-wrap: wrap;
+  margin-bottom: 5px;
+}
+
+.author {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.hostTag {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ember);
+  background: var(--tint-ember);
+  padding: 2px 6px;
+  border-radius: var(--r-xs);
+}
+
+.removedTag {
+  font-size: 11px;
+  color: var(--faint);
+  font-style: italic;
+}
+
+.type {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11.5px;
+  font-weight: 500;
+  padding: 2px 8px 2px 6px;
+  border-radius: var(--r-pill);
+}
+.typeIdea    { color: var(--muted);    background: var(--surface-2); }
+.typeClarify { color: var(--clarify);  background: var(--tint-clarify); }
+.typeObject  { color: var(--objected-bright); background: var(--tint-objected); }
+.typeAbstain { color: var(--muted);    background: var(--surface-2); }
+
+.time {
+  margin-left: auto;
+  font-size: 12px;
+  color: var(--faint);
+  font-variant-numeric: tabular-nums;
+}
+
+.text {
+  font-size: 14.5px;
+  line-height: 1.58;
+  color: var(--ink);
+  max-width: 70ch;
+}
+
+/* Objection: the hot box that breaks the calm. Full border + tint + glow,
+   never a side-stripe. */
+.objection {
+  margin: var(--s3) 0;
+  padding: var(--s4);
+  border: 1px solid color-mix(in oklab, var(--objected) 45%, var(--line));
+  border-radius: var(--r-md);
+  background: var(--tint-objected);
+  box-shadow: var(--glow-objected);
+  transition: box-shadow var(--dur-3) var(--ease-out), background var(--dur-3) var(--ease-out),
+    border-color var(--dur-3) var(--ease-out);
+}
+.item + .objection { border-top: none; }
+.objection + .item { border-top: none; }
+
+.objection .text { color: var(--ink); }
+
+/* once dismissed, the heat dies down */
+.resolved {
+  background: var(--surface);
+  border-color: var(--line);
+  box-shadow: none;
+}
+
+.objectionActions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s3);
+  margin-top: var(--s3);
+  flex-wrap: wrap;
+}
+
+.blocking {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--objected-bright);
+}
+
+.dismiss {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ink);
+  background: var(--surface);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-sm);
+  padding: 7px 12px;
+  transition: background var(--dur-1) var(--ease-out), border-color var(--dur-1) var(--ease-out);
+}
+.dismiss:hover {
+  background: var(--surface-2);
+  border-color: color-mix(in oklab, var(--objected) 40%, var(--line-strong));
+}
+
+.dismissedNote {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-top: var(--s3);
+  font-size: 13px;
+  color: var(--muted);
+}
+.dismissedNote svg { color: var(--ember); flex-shrink: 0; margin-top: 1px; }
+.dismissedNote i { color: var(--ink); font-style: italic; }

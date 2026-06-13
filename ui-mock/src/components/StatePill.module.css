@@ -1,0 +1,45 @@
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: var(--r-pill);
+  font-family: var(--font-text);
+  font-weight: 500;
+  font-size: 12.5px;
+  line-height: 1;
+  padding: 5px 11px 5px 9px;
+  white-space: nowrap;
+  border: 1px solid transparent;
+}
+
+.sm {
+  font-size: 11.5px;
+  padding: 4px 9px 4px 7px;
+  gap: 5px;
+}
+
+.accepted {
+  background: var(--tint-accepted);
+  color: var(--accepted);
+}
+
+.objected {
+  background: var(--tint-objected);
+  color: var(--objected-bright);
+}
+
+.abstained {
+  background: var(--surface-2);
+  color: var(--muted);
+}
+
+.pending {
+  background: transparent;
+  color: var(--faint);
+  border-color: var(--line);
+}
+
+.dismissed {
+  background: var(--surface-2);
+  color: var(--muted);
+}

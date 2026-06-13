@@ -1,0 +1,25 @@
+.avatar {
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--surface-2);
+  color: var(--ink);
+  font-family: var(--font-text);
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  border: 1px solid var(--line);
+  flex-shrink: 0;
+  user-select: none;
+}
+
+/* The host holds the gavel — marked by an ember ring. */
+.host {
+  border-color: transparent;
+  box-shadow: 0 0 0 1.5px var(--ember);
+  background: color-mix(in oklab, var(--ember) 18%, var(--surface-2));
+}
+
+.removed {
+  opacity: 0.5;
+  filter: grayscale(0.3);
+}

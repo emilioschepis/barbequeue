@@ -1,0 +1,77 @@
+/* Barbequeue design tokens — "Charcoal & Ember" (see DESIGN.md).
+   Brand = ember (restrained). Functional colors are deliberately distinct from brand. */
+
+:root {
+  color-scheme: dark;
+
+  /* ---- Charcoal (warm-neutral, dark) ---- */
+  --bg:          oklch(0.165 0.007 50);
+  --surface:     oklch(0.205 0.008 50);
+  --surface-2:   oklch(0.250 0.009 50);
+  --surface-3:   oklch(0.300 0.010 50);   /* hover / raised */
+  --line:        oklch(0.320 0.012 50);
+  --line-strong: oklch(0.420 0.013 50);
+
+  --ink:         oklch(0.955 0.006 60);    /* primary text — ≥7:1 on bg */
+  --muted:       oklch(0.720 0.011 55);    /* secondary text — ≥4.5:1 */
+  --faint:       oklch(0.585 0.010 55);    /* tertiary / disabled */
+
+  /* ---- Ember (brand — restrained, the steady glow) ---- */
+  --ember:        oklch(0.685 0.115 48);
+  --ember-bright: oklch(0.760 0.130 52);
+  --ember-dim:    oklch(0.500 0.090 45);
+  --on-ember:     oklch(0.180 0.020 50);   /* dark ink on ember fills */
+
+  /* ---- Functional (semantic — never the brand) ---- */
+  --accepted:  oklch(0.745 0.150 150);
+  --objected:  oklch(0.620 0.195 22);
+  --objected-bright: oklch(0.690 0.205 24);
+  --clarify:   oklch(0.720 0.115 230);
+
+  /* translucent state fills (for pills / panels on dark) */
+  --tint-ember:    color-mix(in oklab, var(--ember)    16%, transparent);
+  --tint-accepted: color-mix(in oklab, var(--accepted) 15%, transparent);
+  --tint-objected: color-mix(in oklab, var(--objected) 16%, transparent);
+  --tint-clarify:  color-mix(in oklab, var(--clarify)  15%, transparent);
+
+  /* ---- Radii ---- */
+  --r-xs: 5px;
+  --r-sm: 8px;
+  --r-md: 11px;
+  --r-lg: 15px;
+  --r-xl: 22px;
+  --r-pill: 999px;
+
+  /* ---- Spacing ---- */
+  --s1: 4px;  --s2: 8px;  --s3: 12px; --s4: 16px;
+  --s5: 20px; --s6: 28px; --s7: 40px; --s8: 56px; --s9: 80px;
+
+  /* ---- Type ---- */
+  --font-display: 'Helvetica Now Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-text:    'Helvetica Now Text', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+
+  /* ---- Z-index scale (semantic) ---- */
+  --z-base: 0;
+  --z-sticky: 100;
+  --z-dropdown: 200;
+  --z-backdrop: 300;
+  --z-modal: 400;
+  --z-toast: 500;
+  --z-tooltip: 600;
+
+  /* ---- Motion ---- */
+  --dur-1: 120ms;
+  --dur-2: 190ms;
+  --dur-3: 280ms;
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);   /* ease-out-quint */
+
+  /* ---- Glow (the one permitted standing glow is ember/objection) ---- */
+  --glow-objected:
+    0 0 0 1px color-mix(in oklab, var(--objected) 50%, transparent),
+    0 10px 34px -12px color-mix(in oklab, var(--objected) 70%, transparent);
+  --glow-ember:
+    0 10px 30px -14px color-mix(in oklab, var(--ember) 75%, transparent);
+
+  /* neutral interaction shadow (menus / dialogs only) */
+  --shadow-pop: 0 18px 50px -16px oklch(0 0 0 / 0.6), 0 2px 8px -2px oklch(0 0 0 / 0.5);
+}

@@ -1,0 +1,227 @@
+.rail {
+  position: sticky;
+  top: calc(60px + var(--s5));
+  align-self: start;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s4);
+  max-height: calc(100dvh - 60px - var(--s6));
+  overflow: auto;
+  padding-right: 2px;
+}
+
+.panel {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  padding: var(--s4);
+}
+
+.head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: var(--s3);
+}
+
+.title {
+  font-family: var(--font-display);
+  font-size: 14.5px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.tally {
+  font-size: 12px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.bar {
+  display: flex;
+  gap: 3px;
+  height: 8px;
+  margin-bottom: var(--s4);
+}
+.seg {
+  border-radius: var(--r-pill);
+  min-width: 8px;
+  transition: flex-grow var(--dur-3) var(--ease-out);
+}
+
+.banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: var(--s3) var(--s3) var(--s3) 12px;
+  border-radius: var(--r-md);
+  margin-bottom: var(--s4);
+}
+.bannerText {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.bannerText strong {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+  line-height: 1.3;
+}
+.bannerText span {
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 1.35;
+}
+.bBlocked {
+  background: var(--tint-objected);
+  border: 1px solid color-mix(in oklab, var(--objected) 30%, transparent);
+}
+.bBlocked > svg { color: var(--objected-bright); flex-shrink: 0; margin-top: 1px; }
+.bReady {
+  background: var(--tint-accepted);
+  border: 1px solid color-mix(in oklab, var(--accepted) 28%, transparent);
+}
+.bReady > svg { color: var(--accepted); flex-shrink: 0; margin-top: 1px; }
+
+.members {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+}
+
+.member {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 0;
+}
+.member + .member { border-top: 1px solid var(--line); }
+
+.mInfo {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
+}
+.mName {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.mRole {
+  font-size: 11px;
+  color: var(--faint);
+}
+
+.removedWrap {
+  margin-top: var(--s3);
+  padding-top: var(--s3);
+  border-top: 1px dashed var(--line);
+  display: flex;
+  flex-direction: column;
+  gap: var(--s2);
+}
+.removedLabel {
+  font-size: 11px;
+  color: var(--faint);
+}
+.removedRow {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+.removedRow .mName { color: var(--muted); }
+
+/* ---- controls ---- */
+.controls {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  padding: var(--s4);
+}
+
+.advance {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  font-size: 14.5px;
+  font-weight: 600;
+  color: var(--on-ember);
+  background: var(--ember);
+  padding: 12px 16px;
+  border-radius: var(--r-md);
+  transition: background var(--dur-2) var(--ease-out), box-shadow var(--dur-2) var(--ease-out),
+    transform var(--dur-1) var(--ease-out);
+}
+.advance:hover:not(:disabled) {
+  background: var(--ember-bright);
+  box-shadow: var(--glow-ember);
+}
+.advance:active:not(:disabled) { transform: translateY(1px); }
+.advance:disabled {
+  background: var(--surface-2);
+  color: var(--faint);
+  box-shadow: none;
+}
+
+.hint {
+  margin-top: var(--s2);
+  font-size: 12px;
+  color: var(--muted);
+  text-align: center;
+}
+
+.secondary {
+  display: flex;
+  gap: var(--s2);
+  margin-top: var(--s3);
+}
+.ghost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  flex: 1;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--muted);
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  padding: 8px 10px;
+  transition: background var(--dur-1) var(--ease-out), color var(--dur-1) var(--ease-out),
+    border-color var(--dur-1) var(--ease-out);
+}
+.ghost:hover {
+  color: var(--ink);
+  background: var(--surface-2);
+  border-color: var(--line-strong);
+}
+
+.reset {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  align-self: center;
+  font-size: 12px;
+  color: var(--faint);
+  padding: 6px 10px;
+  border-radius: var(--r-sm);
+  transition: color var(--dur-1) var(--ease-out);
+}
+.reset:hover { color: var(--muted); }
+
+@media (max-width: 960px) {
+  .rail {
+    position: static;
+    max-height: none;
+    overflow: visible;
+  }
+}

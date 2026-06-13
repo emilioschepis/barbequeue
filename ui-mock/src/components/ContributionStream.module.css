@@ -1,0 +1,38 @@
+.section {
+  margin-top: var(--s6);
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-bottom: var(--s2);
+  border-bottom: 1px solid var(--line);
+}
+
+.title {
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+}
+
+.count {
+  display: grid;
+  place-items: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 7px;
+  border-radius: var(--r-pill);
+  background: var(--surface-2);
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+}
