@@ -1,0 +1,8 @@
+<svg width="64" height="64" viewBox="0 0 8 8" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Barbequeue">
+  <rect x="0.16" y="0.16" width="7.68" height="7.68" rx="1.05" fill="#1c1610"/>
+  <rect x="0.16" y="3.792" width="0.632" height="0.416" fill="#ffffff"/>
+  <circle cx="1.969" cy="4" r="0.997" fill="#ffffff"/>
+  <circle cx="4.07" cy="4" r="0.997" fill="#d38358"/>
+  <rect x="5.196" y="3.08" width="1.841" height="1.841" fill="#ffffff"/>
+  <rect x="7.208" y="3.792" width="0.632" height="0.416" fill="#ffffff"/>
+</svg>

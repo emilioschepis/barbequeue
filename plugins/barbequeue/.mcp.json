@@ -2,7 +2,7 @@
   "mcpServers": {
     "barbequeue": {
       "command": "pnpm",
-      "args": ["--dir", "/Users/emilio/Developer/Projects/barbequeue/plugins/barbequeue", "mcp"]
+      "args": ["--dir", ".", "mcp"]
     }
   }
 }

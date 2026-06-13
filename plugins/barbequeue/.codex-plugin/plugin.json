@@ -1,6 +1,6 @@
 {
   "name": "barbequeue",
-  "version": "0.1.0+codex.20260613134740",
+  "version": "0.1.0+codex.20260613144352",
   "description": "Run Barbequeue multiplayer grill-with-docs tracer sessions from Codex.",
   "author": {
     "name": "Barbequeue"
@@ -22,6 +22,8 @@
       "Resume my Barbequeue session.",
       "Run the Barbequeue tracer demo."
     ],
-    "brandColor": "#0F766E"
+    "brandColor": "#0F766E",
+    "logo": "./assets/icon.svg",
+    "composerIcon": "./assets/icon.svg"
   }
 }
