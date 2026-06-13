@@ -1,0 +1,38 @@
+.app {
+  min-height: 100dvh;
+  background:
+    radial-gradient(
+      120% 90% at 88% -10%,
+      color-mix(in oklab, var(--ember) 7%, transparent) 0%,
+      transparent 55%
+    ),
+    var(--bg);
+}
+
+.main {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 340px;
+  gap: var(--s7);
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 0 var(--s6) var(--s9);
+}
+
+.column {
+  min-width: 0;
+  padding-top: var(--s2);
+}
+
+@media (max-width: 960px) {
+  .main {
+    grid-template-columns: 1fr;
+    gap: var(--s5);
+    max-width: 720px;
+    padding-bottom: var(--s7);
+  }
+  .column { padding-top: 0; }
+}
+
+@media (max-width: 720px) {
+  .main { padding: 0 var(--s4) var(--s7); }
+}
