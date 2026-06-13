@@ -1,1 +1,5 @@
 *~lock~
+**/.barbequeue/
+node_modules/
+dist/
+.wrangler/

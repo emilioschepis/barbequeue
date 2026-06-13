@@ -1,0 +1,27 @@
+{
+  "name": "barbequeue",
+  "version": "0.1.0+codex.20260613134740",
+  "description": "Run Barbequeue multiplayer grill-with-docs tracer sessions from Codex.",
+  "author": {
+    "name": "Barbequeue"
+  },
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json",
+  "interface": {
+    "displayName": "Barbequeue",
+    "shortDescription": "Run collaborative grilling sessions.",
+    "longDescription": "Barbequeue starts and resumes host-driven multiplayer grill-with-docs tracer sessions while keeping repository access local to Codex.",
+    "developerName": "Barbequeue",
+    "category": "Productivity",
+    "capabilities": [
+      "Interactive",
+      "Write"
+    ],
+    "defaultPrompt": [
+      "Start a Barbequeue grilling session.",
+      "Resume my Barbequeue session.",
+      "Run the Barbequeue tracer demo."
+    ],
+    "brandColor": "#0F766E"
+  }
+}

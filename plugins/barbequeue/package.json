@@ -1,0 +1,25 @@
+{
+  "name": "@barbequeue/codex-plugin",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "barbequeue": "./dist/cli.js"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "barbequeue": "tsx src/cli.ts",
+    "mcp": "tsx src/mcp-server.ts",
+    "test": "vitest run",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@barbequeue/protocol": "workspace:*",
+    "zod": "^3.25.64"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "tsx": "^4.20.3",
+    "vitest": "^3.2.0"
+  }
+}

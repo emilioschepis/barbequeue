@@ -1,0 +1,18 @@
+{
+  "name": "barbequeue",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "check": "pnpm -r typecheck && pnpm -r test && pnpm --filter @barbequeue/hosted-service deploy:dry",
+    "test": "pnpm -r test",
+    "typecheck": "pnpm -r typecheck",
+    "dev:hosted-service": "pnpm --filter @barbequeue/hosted-service dev",
+    "barbequeue": "pnpm --filter @barbequeue/codex-plugin barbequeue"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "typescript": "^5.8.3",
+    "vitest": "^3.2.0"
+  }
+}
